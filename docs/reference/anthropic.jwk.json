@@ -1,0 +1,8 @@
+{
+  "kty": "OKP",
+  "crv": "Ed25519",
+  "alg": "EdDSA",
+  "kid": "eleviq-lab-demo-anthropic",
+  "x": "IhE0rrSHZq8cgXrIcSNUC-SM_jvF_8Y2JT3y8LVKLoc",
+  "d": "MF49t0qn3L8zUYEyaydsdLBhFDVwIi2uBtq4VCJhMPc"
+}

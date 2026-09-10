@@ -1,0 +1,8 @@
+{
+  "kty": "OKP",
+  "crv": "Ed25519",
+  "alg": "EdDSA",
+  "kid": "eleviq-lab-demo-openai",
+  "x": "OgGI5U0IACv5oJ8cC1kK_B_r6fEU2eUJ0YTBc7HL5ho",
+  "d": "atZuYKMeEysSahDtMoMjlhqTNMbnvpH2eXzY7hMAr-Q"
+}

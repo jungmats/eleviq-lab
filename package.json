@@ -1,0 +1,24 @@
+{
+  "name": "eleviq-lab",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "ElevIQ Lab — working demonstrations of the agentic web. A static demo site (GitHub Pages) driving a standalone agent gateway Worker (Cloudflare).",
+  "scripts": {
+    "build": "node build/bundle.mjs",
+    "dev:gateway": "wrangler dev --config gateway/wrangler.toml --port 8787",
+    "deploy:gateway": "wrangler deploy --config gateway/wrangler.toml",
+    "dev:site": "npm run build && npx --yes http-server docs -p 8000 -c-1 --silent",
+    "keys": "node scripts/gen-keys.mjs",
+    "typecheck": "tsc -p gateway/tsconfig.json"
+  },
+  "dependencies": {
+    "web-bot-auth": "0.2.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260910.1",
+    "esbuild": "^0.28.2",
+    "typescript": "^5.7.0",
+    "wrangler": "^4.130.0"
+  }
+}

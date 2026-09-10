@@ -1,0 +1,8 @@
+{
+  "kty": "OKP",
+  "crv": "Ed25519",
+  "alg": "EdDSA",
+  "kid": "eleviq-lab-demo-perplexity",
+  "x": "IZGgi3llt1WMIuyy4UW8Vh2UllyoIg880MBGhSjl8Zs",
+  "d": "_3PKGbbhEXoeF5wop99NqWgTOlg30zSjufKl9VEsJLk"
+}

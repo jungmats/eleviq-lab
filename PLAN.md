@@ -1,5 +1,12 @@
 # ElevIQ Lab — Demo 1: Agent Identity (Web Bot Auth)
 
+**Status (2026-09-10): built; restructured to the split architecture.** Real
+client-side signing in the browser + standalone **gateway Worker** verification,
+three scenarios green. Reference script + `/api/sign` test aid working.
+Restructure to `docs/` (site) + `gateway/` (Worker) done; needs a re-test on the
+new layout, then: deploy the gateway (`npm run deploy:gateway`) and turn on
+GitHub Pages for `docs/`.
+
 ## Context
 
 `eleviq.solutions` markets ElevIQ's AI agent-readiness and monetization consulting.
@@ -24,21 +31,29 @@ The richer allow/refuse/charge decision is Demo 2.
 
 ## Decisions made
 
-- **Hosting:** Cloudflare Pages + Pages Functions, deployed as `eleviq-lab.pages.dev`.
-  No domain move for v1.
-- **Deployment:** Pages Git integration (auto-deploy + previews) + `wrangler pages dev` local.
-- **Isolation:** noindex + obscurity only. `X-Robots-Tag: noindex,nofollow` on every
-  response via `functions/_middleware.ts`, `robots.txt` disallow, `<meta robots>` per page,
-  no inbound links, private repo. API endpoints stay publicly reachable — they are the demo.
-- **Edge language:** TypeScript (Pages Functions compile it natively).
-- **Library:** `web-bot-auth@0.2.0` (Cloudflare) — `sign`/`verify` from `web-bot-auth`,
+- **Split architecture** — same shape as the Book Call attribution setup:
+  - `docs/` → **GitHub Pages**, `lab.eleviq.solutions` (CNAME to `jungmats.github.io`).
+    The explainer pages, the browser console, the reference material. Pure static;
+    keeps the lab's static content on the same infra as `eleviq.solutions`.
+  - `gateway/` → **Cloudflare Worker**, `eleviq-lab-gateway.workers.dev`. The
+    reference implementation: verifies agents, serves the key directory, later
+    proxies to origin + policy + payment. This is the artifact ElevIQ deploys for
+    a customer (Worker route / Custom Domain in front of their endpoint).
+  - Chosen over unified Cloudflare Pages because a Pages project hosts a *site*; a
+    Worker *intercepts requests* — only the Worker shape transfers to a customer.
+- **No nameserver move for v1.** Gateway on `*.workers.dev`; the demo shows two
+  origins (`lab.eleviq.solutions` + `…workers.dev`) — revisit when the zone moves
+  to Cloudflare for Charge/Measure.
+- **Isolation:** noindex + obscurity. `X-Robots-Tag` set by the gateway wrapper
+  and `<meta robots>` on the pages; `docs/robots.txt` disallow; no inbound links.
+- **Language:** TypeScript. Gateway is a `fetch()` handler + a ~40-line router
+  (like `booking/_gateway-worker`); `src/lib/*` is host-agnostic.
+- **Library:** `web-bot-auth@0.2.0` (Cloudflare) — `sign`/`verify`,
   `signerFromJWK`/`verifierFromJWK` from `web-bot-auth/crypto`. Ed25519. Real crypto.
-- **Verification runs in the Pages Function** (our code + Cloudflare's `web-bot-auth`
-  library) — "option 2". This is the **v1 deployment model** and the one ElevIQ would offer
-  customers: ElevIQ hosts and maintains the gateway on Cloudflare; the customer points an
-  agent-facing endpoint at it with one DNS record (subdomain `CNAME`, or a Worker route if
-  already on Cloudflare). Least invasive — no customer code, plugin, or server.
-  Cloudflare's *native edge* Web Bot Auth ("option 3": network verifies, app reads a
+- **Keys:** committed DEMO keypairs in `gateway/keys/` (source of truth). `npm run
+  build` copies them to `docs/reference/` for the console + download. One-way copy,
+  no sync problem.
+- Cloudflare's *native edge* Web Bot Auth ("option 3": network verifies, app reads a
   signal, requires the customer's domain to be a Cloudflare zone) is a **later phase**, not
   v1. The page contrasts the two in "Where the check runs".
 - **Resource:** a concrete document — "Q3 partner price list". Unverified = teaser, verified
@@ -47,7 +62,7 @@ The richer allow/refuse/charge decision is Demo 2.
   once the page shape is settled.
 - **In-page signing is client-side (honest):** the page holds a *demo agent* Ed25519 private
   key and signs in the browser with `web-bot-auth` (vendored browser bundle via a small
-  esbuild step). The agent genuinely signs; the verifier is a separate Pages Function.
+  esbuild step). The agent genuinely signs; the verifier is the separate gateway Worker.
 - **External testing is a first-class requirement** — see below.
 - **Demo keypairs are committed**, marked `DEMO — not a production secret`, so everything
   runs with zero secret setup. `scripts/gen-keys.mjs` + a README note cover the Cloudflare
@@ -75,61 +90,19 @@ fetch tool — hits the same endpoint and gets the same verdict.
 Future: an MCP endpoint exposing a `fetch_as_agent` tool for connected assistants, mirroring
 `booking/_gateway-worker`.
 
-## Page layout — `public/identity/index.html`
+## Page layout — `docs/identity/index.html` (as built)
 
-```
-Header:  [ElevIQ logo → eleviq.solutions]   ElevIQ Lab · Agent Identity (Web Bot Auth)
-
-1 · THE PROBLEM
-   3–4 sentences: server sees an IP + a User-Agent, both trivially spoofed; can't tell an
-   accountable agent from a scraper wearing its name. Web Bot Auth = a signature the agent
-   can't fake and you verify in ~1 ms at the edge.
-
-2 · THE DEMO
-   "A visiting agent requests a protected resource on this lab — the Q3 partner price list.
-    Choose how the agent behaves, send the request, watch the server's decision."
-
-   ┌ YOU CONTROL — the visiting agent ───────────────────────┐
-   │  Behaviour:  ● Valid signature                          │
-   │              ○ No signature                             │
-   │              ○ Unknown key                              │
-   │  Claimed identity (User-Agent): [ ChatGPT-User    ▾ ]   │
-   │    hint: set to "ClaudeBot" with "No signature" — the   │
-   │    claim changes, the proof doesn't                     │
-   │                 [  Send request →  ]                    │
-   └────────────────────────────────────────────────────────┘
-
-   ┌ WHAT THE AGENT SENT ─────────┬ WHAT THE SERVER DID ──────┐
-   │ GET /api/identity/price-list │  ⛔ REFUSED · 401          │
-   │ Host: eleviq-lab.pages.dev   │  no signature — identity  │
-   │ User-Agent: ChatGPT-User     │  cannot be verified       │
-   │ Signature-Input: ...         │  Verified as:  —          │
-   │ Signature: :...:             │  Key:          —          │
-   │ Signature-Agent: ...         │  Signed:       —          │
-   │ [ copy as curl ]             │  Valid for:    —          │
-   └──────────────────────────────┴───────────────────────────┘
-
-   ┌ RESPONSE BODY ─────────────────────────────────────────┐
-   │ { "access": "public", "teaser": "...",                 │
-   │   "note": "Full list requires a verified agent" }      │
-   └───────────────────────────────────────────────────────┘
-
-   Log: one line appended per send — "12:04:03 · valid · VERIFIED as ChatGPT-User (OpenAI)"
-
-3 · WITHOUT / WITH   (fixed, always visible)
-   Without Web Bot Auth            |  With Web Bot Auth
-   identity is a claim             |  identity is a proof
-   "ChatGPT-User" = anyone         |  bound to the operator's published key
-   block/allow by IP range         |  allow / refuse / charge per verified agent
-   no accountability               |  audit trail per identity
-
-4 · HOW AN AGENT REALLY DOES THIS
-   • the copy-as-curl above
-   • reference/sign-request.mjs — client-side signing, the code a real agent runs
-   • this lab's key directory: /.well-known/http-message-signatures-directory
-   • one paragraph: Cloudflare verifies this automatically at the edge; here we verify in a
-     Pages Function so you can see inside.
-```
+1. **The problem** — spoofable IP/User-Agent → cryptographic signature.
+2. **The demo** — "you are the agent" callout; controls: 3 scenarios (`valid` ·
+   `unsigned` · `unknown-key`) + claimed-identity dropdown (3 operator stand-ins);
+   panes: *what the agent sent* (request wire + copy-as-curl) / *what the server did*
+   (verdict badge + extracted facts) / response body / request log.
+3. **Where the check runs** — the gateway is a standalone Worker = the customer artifact;
+   one DNS record for the customer; standard, portable; option 3 (edge) is later.
+4. **Without / with** — fixed two-column contrast.
+5. **Test it from your own tools** — A ask an assistant · B unsigned curl · C `/api/sign`
+   helper · D reference script. URLs: gateway = `eleviq-lab-gateway.workers.dev`,
+   downloads = `lab.eleviq.solutions/reference/`.
 
 **Verdict panel** = the visual feedback of every agent action: large coloured status
 (✅ VERIFIED / ⛔ REFUSED / ⚠️ REJECTED), plain-language reason, and the facts the server
@@ -139,89 +112,81 @@ long.
 **Presenter controls:** (1) agent behaviour — the 3 scenarios; (2) claimed User-Agent
 string, to show claim-vs-proof; (3) later: which agent identity signs, replay button.
 
-## Repo layout (Demo-1 slice)
+## Repo layout
 
 ```
-README.md · package.json · tsconfig.json · wrangler.toml · .gitignore · .dev.vars.example
-build/                     — esbuild config for the browser bundle
-public/
-  index.html               — lab landing page (pipeline; Identify linked, others "coming")
-  styles.css               — copied from main site
-  lab.css                  — console styles
-  robots.txt               — Disallow: /
-  identity/index.html      — Demo 1 page
-  assets/
-    agent-sign.js          — vendored browser bundle of web-bot-auth (esbuild output)
-    console.js             — Demo 1 console logic (scenario → sign → fetch → render)
-    eleviq_logo_v1.6.png · icon.png   — copied from main site
-functions/
-  _middleware.ts           — X-Robots-Tag: noindex,nofollow on all responses
-  .well-known/
-    http-message-signatures-directory.ts  — serves trusted Ed25519 public keys,
-                             Content-Type application/http-message-signatures-directory+json
-  api/
-    identity/
-      price-list.ts        — the protected resource: verify → 200 full list | 401 teaser + problem+json
-    sign.ts                — LABELLED test-aid signer (valid | unknown-key)
-  lib/
-    keys.ts                — load committed demo JWKs (+ env override), thumbprint helpers
-    verify.ts              — wrap web-bot-auth verify(); resolver checks keyid against the
-                             directory / local trust store; returns a structured verdict
-    problem.ts             — application/problem+json helper
-keys/
-  lab-directory.jwk.json   — DEMO: lab signing key (pub+priv), in the directory
-  demo-agent.jwk.json      — DEMO: visiting-agent key (pub+priv), in the directory (trusted)
-  untrusted-agent.jwk.json — DEMO: key NOT in the directory (unknown-key scenario)
-reference/
-  README.md                — end-to-end walkthrough for a human or a coding assistant
-  sign-request.mjs         — standalone Node client-side signer; prints curl or --send
-scripts/
-  gen-keys.mjs             — generate fresh Ed25519 JWK pairs (production / rotation)
+README.md · package.json · .gitignore
+build/bundle.mjs · build/agent-sign.entry.js   — esbuild the browser bundle + copy keys
+scripts/gen-keys.mjs                            — regenerate the demo keypairs
+
+docs/                        static site → GitHub Pages (lab.eleviq.solutions)
+  index.html                 lab landing page
+  identity/index.html        Demo 1 page  (<meta name="gateway"> sets the gateway URL)
+  styles.css · lab.css · robots.txt · CNAME · .nojekyll
+  assets/console.js          scenario → sign in-browser → call gateway → render
+  assets/agent-sign.js       generated + committed: web-bot-auth for the browser
+  assets/eleviq_icon.png · eleviq_logo_v1.6.png
+  reference/README.md · sign-request.mjs        the reference signer
+  reference/*.jwk.json        generated + committed: demo keys (copied from gateway/keys/)
+
+gateway/                     the gateway Worker → Cloudflare (eleviq-lab-gateway.workers.dev)
+  wrangler.toml · tsconfig.json
+  src/index.ts               fetch handler: OPTIONS · / · route dispatch · 404 · noindex wrapper
+  src/routes/directory.ts    GET /.well-known/http-message-signatures-directory
+  src/routes/price-list.ts   GET /api/identity/price-list → 200 full list | 401 teaser + problem+json
+  src/routes/sign.ts         POST /api/sign → LABELLED test-aid signer (valid | unknown-key | expired)
+  src/lib/keys.ts            load committed demo JWKs; keyid → operator registry; directory list
+  src/lib/verify.ts          wrap web-bot-auth verify(); resolver checks keyid vs trust store; typed verdict
+  src/lib/http.ts            json() / problem() (application/problem+json) / CORS helpers
+  keys/*.jwk.json            committed DEMO keypairs (openai · anthropic · perplexity · demo-agent · untrusted-agent)
 ```
 
 ## Key implementation notes
 
-- **`functions/lib/verify.ts`** — resolver resolves keyid **only** from the fetched
-  directory / local trust store (never trust the candidate). Validate `created`/`expires`
-  with clock skew. Typed reason on every failure path: `unsigned` · `unknown-key` ·
-  (later) `expired` · `signature-mismatch`.
-- **`functions/api/sign.ts`** — signs with the **request's own origin** as `@authority` so
-  the same-origin verifier recomputes the same base. `Signature-Agent` = the lab origin (its
-  directory is this lab's own well-known endpoint — self-contained but shows the real
-  fetch-and-trust path). Loud DEMO/TEST-AID banner in the JSON response.
-- **Browser bundle** — one esbuild step (`npm run build`) emits `public/assets/agent-sign.js`
-  from `web-bot-auth`. Pages build command: `npm ci && npm run build`. Keeps the lab
-  self-contained (no CDN import at runtime).
-- **Directory self-signing** (`tag="http-message-signatures-directory"`) — nice-to-have; if
-  `web-bot-auth` `sign()` won't override the tag, drop to `http-message-sig` or note the gap.
-- **`_middleware.ts`** — noindex header on every response, static and API.
-- **Identities** — seed the directory with a couple of named demo agents ("ElipseBot /
-  ElevIQ Lab", plus stand-ins labelled like real operators for the walkthrough). Be clear on
-  the page these are lab demo keys, not the operators' real keys.
+- **`gateway/src/lib/verify.ts`** — resolver resolves keyid **only** from the trust store
+  (never trusts the candidate). Validates `created`/`expires` with clock skew. Typed reason
+  on every failure path: `unsigned` · `unknown-key` · `expired` · `invalid`.
+- **`gateway/src/routes/sign.ts`** — signs with `target: "@target-uri"` so the signature is
+  bound to the full URL. `Signature-Agent` = the gateway origin (its directory is the
+  gateway's own well-known endpoint). Loud DEMO/TEST-AID banner in the JSON response.
+- **Browser bundle** — `npm run build` emits `docs/assets/agent-sign.js` from `web-bot-auth`
+  and copies `gateway/keys/*` → `docs/reference/`. Both are **committed** (GitHub Pages
+  serves committed files; no CI).
+- **console.js gateway URL** — from `<meta name="gateway">`, except on `localhost` where it
+  always targets `http://localhost:8787` (so `npm run dev:*` works).
+- **noindex** — set by the gateway's `withHeaders()` wrapper and `<meta robots>` on the
+  pages; `docs/robots.txt` disallows all.
+- **Identities** — 4 trusted keys (3 operator stand-ins + demo-agent) + 1 untrusted. The
+  page states the operator keys are lab stand-ins, not the operators' real keys.
 
 ## What the user does (outside this scaffold)
 
-1. Create empty **private** GitHub repo `jungmats/eleviq-lab`.
-2. In `/Users/majung/Code/eleviq-lab`: `git init && git add -A && git commit`, then
-   `git remote add origin … && git push -u origin main`. (User owns git — I scaffold only.)
-3. Cloudflare dashboard → Workers & Pages → Create → Pages → Connect to Git → `eleviq-lab`.
-   Build: preset **None**, build command `npm ci && npm run build`, output dir `public`.
-4. No secrets to configure in v1. `eleviq-lab.pages.dev` goes live.
+1. Create the GitHub repo `jungmats/eleviq-lab`; from the repo:
+   `git add -A && git commit && git remote add origin … && git push -u origin main`.
+   (User owns git.)
+2. **Gateway:** `npm install && npm run deploy:gateway` (first run: `wrangler login`).
+   → `eleviq-lab-gateway.<subdomain>.workers.dev`. If the subdomain differs from
+   `eleviq-lab-gateway.workers.dev`, update `<meta name="gateway">` in
+   `docs/identity/index.html` and the URLs in §5 + `docs/reference/`.
+3. **Site:** GitHub repo → Settings → Pages → deploy from `main` / `/docs`. Add the
+   `lab.eleviq.solutions` CNAME record at the DNS host (→ `jungmats.github.io`).
+4. No secrets in v1.
 
 ## Verification (end-to-end)
 
-Local — `npm install && npm run build && npx wrangler pages dev`, visit `http://localhost:8788`:
-- Landing page renders in ElevIQ styling; Identify links to the live demo, others "coming".
+Local — `npm install && npm run build`, then in two shells `npm run dev:gateway` and
+`npm run dev:site`, visit `http://localhost:8000`:
+- Landing page renders in ElevIQ styling; Identify links to the demo, others "coming".
 - Demo 1: `valid` → ✅ VERIFIED + full price list; `unsigned` → ⛔ REFUSED + teaser +
   problem+json; `unknown-key` → ⚠️ REJECTED (untrusted key).
-- `curl -s localhost:8788/.well-known/http-message-signatures-directory | jq` → keys, with
+- `curl -s localhost:8787/.well-known/http-message-signatures-directory` → keys, with
   `Content-Type: application/http-message-signatures-directory+json`.
-- `node reference/sign-request.mjs --url http://localhost:8788/api/identity/price-list --send`
+- `node sign-request.mjs --url http://localhost:8787/api/identity/price-list --send`
   → 200 + full list. Plain `curl` (no signature) → 401 + problem+json.
-- `curl -sI` any URL shows `X-Robots-Tag: noindex, nofollow`.
+- `curl -sI` any gateway URL shows `X-Robots-Tag: noindex, nofollow`.
 
-Deployed (after the user connects Pages): repeat the curl / reference-script checks against
-`https://eleviq-lab.pages.dev`.
+Deployed: repeat against `https://eleviq-lab-gateway.workers.dev` and
+`https://lab.eleviq.solutions`.
 
 ## Later (not this plan)
 

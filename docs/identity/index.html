@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <meta name="robots" content="noindex, nofollow">
+  <meta name="gateway" content="https://eleviq-lab-gateway.workers.dev">
   <title>Agent Identity — ElevIQ Lab</title>
   <link rel="icon" href="../assets/eleviq_icon.png">
   <link rel="stylesheet" href="../styles.css">
@@ -43,7 +44,8 @@
         <div class="agent-callout">
           <b>On this page, you are the agent.</b> When you press <b>Send request</b>, your
           browser composes, signs and sends the HTTP request an AI agent would make — then
-          shows you exactly what this lab's server did with it.
+          shows you exactly what this lab's server did with it. The operator keys are lab
+          stand-ins labelled with real names, not the operators' actual keys.
         </div>
 
         <p class="step-lead">The agent requests a protected resource on this lab — the
@@ -85,11 +87,13 @@
                 <option value="ChatGPT-User/1.0 (+https://openai.com/bot)">ChatGPT-User (OpenAI)</option>
                 <option value="ClaudeBot/1.0 (+https://anthropic.com/claudebot)">ClaudeBot (Anthropic)</option>
                 <option value="PerplexityBot/1.0 (+https://perplexity.ai/bot)">PerplexityBot (Perplexity)</option>
-                <option value="ResearchCrawler/0.1">ResearchCrawler/0.1 (unknown operator)</option>
               </select>
-              <p class="hint">Sets the <code>User-Agent</code> header. With <b>Valid
-                signature</b> it also selects which demo key signs. Pick <b>No signature</b>
-                and switch between operators — the claim changes, the outcome doesn't.</p>
+              <p class="hint">The claimed identity. With <b>Valid signature</b> the console
+                signs with that operator's demo key, so the server verifies it from the key —
+                not the claim. With <b>No signature</b>, switch operators: the claim changes,
+                the outcome doesn't. (Browsers can't set <code>User-Agent</code> from a
+                script, so the console sends the claim in <code>X-Demo-Agent-Claim</code>;
+                <code>curl</code> would use <code>-H&nbsp;'User-Agent: …'</code>.)</p>
             </div>
 
             <button class="send-btn" id="send">Send request →</button>
@@ -125,21 +129,22 @@
 
       <section class="section step">
         <h2><span class="step-n">3</span> Where the check runs</h2>
-        <p>This demo verifies the signature in a Cloudflare Pages Function — our own code,
-          using Cloudflare's <code>web-bot-auth</code> library. It runs there so the page can
-          show you every step: header parsing, key lookup, timestamp check, verdict. It is
-          also how ElevIQ would run it for a customer:</p>
+        <p>Verification runs in a standalone <b>gateway</b> — a small Cloudflare Worker
+          (<code>eleviq-lab-gateway.workers.dev</code>) that holds the trusted key directory
+          and runs the <code>web-bot-auth</code> verification. This page is a separate static
+          site that just calls it. The gateway is the artifact ElevIQ would deploy for a
+          customer:</p>
         <ul>
           <li><b>Nothing for the customer to install or maintain.</b> Verification — and
-            later, policy and payment — runs on Cloudflare infrastructure ElevIQ hosts and
-            keeps current. No plugin, no library in their stack, no server for them to
-            operate.</li>
-          <li><b>Minimal change to their site.</b> The agent-facing endpoint is pointed at
-            the hosted gateway with one DNS record — a subdomain <code>CNAME</code>, or a
-            Cloudflare Worker route if they are already on Cloudflare. Allowed requests pass
-            through to their origin unchanged; the human-facing site is untouched.</li>
-          <li><b>Standard, not lock-in.</b> It is plain RFC 9421 verification and runs on any
-            serverless host if needed.</li>
+            later, policy and payment — runs in the gateway ElevIQ hosts and keeps current.
+            No plugin, no library in their stack, no server for them to operate.</li>
+          <li><b>One change to their site.</b> The agent-facing endpoint is pointed at the
+            gateway with a single DNS record — a subdomain <code>CNAME</code>, or a Worker
+            route if they are already on Cloudflare. Verified requests are passed through to
+            their origin unchanged; the human-facing site is untouched.</li>
+          <li><b>Standard, not lock-in.</b> It is plain RFC 9421 verification. The gateway is
+            a <code>fetch()</code> handler — it ports to any serverless host with a small
+            routing change and the same <code>lib/</code>.</li>
         </ul>
         <p>A customer who wants verification handled entirely at their own edge can instead
           switch on Cloudflare's native Web Bot Auth — no code at all, but their domain must
@@ -173,31 +178,31 @@
 
       <section class="section step">
         <h2><span class="step-n">5</span> Test it from your own tools</h2>
-        <p>The console in the demo above is a convenience. The endpoint is a plain public
+        <p>The console in the demo above is a convenience. The gateway is a plain public
           HTTP API — exactly what a real agent hits. Four ways to try it yourself, from no
           setup to the full reference code.</p>
 
         <h3>A — Ask an AI assistant</h3>
-        <pre class="wire">Fetch https://eleviq-lab.pages.dev/api/identity/price-list, tell me
-what it returns and why, then follow its instructions to retrieve
-the full resource.</pre>
+        <pre class="wire">Fetch https://eleviq-lab-gateway.workers.dev/api/identity/price-list,
+tell me what it returns and why, then follow its instructions to
+retrieve the full resource.</pre>
         <p>A capable assistant reads the <code>401</code> hint and, if it can run the steps
           in D, comes back verified.</p>
 
         <h3>B — Unsigned · nothing to install</h3>
-        <pre class="wire">curl -i https://eleviq-lab.pages.dev/api/identity/price-list</pre>
+        <pre class="wire">curl -i https://eleviq-lab-gateway.workers.dev/api/identity/price-list</pre>
         <p>Returns <code>401</code> with a JSON body that spells out how to authenticate —
           the same machine-readable hint a real agent uses to discover it must sign.</p>
 
         <h3>C — Signed via the test helper · just curl</h3>
-        <pre class="wire"># 1 · ask the lab to sign a request for you
+        <pre class="wire"># 1 · ask the gateway to sign a request for you
 #     (a test aid — NOT part of the security model)
-curl -s -X POST https://eleviq-lab.pages.dev/api/sign \
+curl -s -X POST https://eleviq-lab-gateway.workers.dev/api/sign \
   -H 'content-type: application/json' \
-  -d '{"url":"https://eleviq-lab.pages.dev/api/identity/price-list"}'
+  -d '{"url":"https://eleviq-lab-gateway.workers.dev/api/identity/price-list"}'
 
 # 2 · replay the three headers it returns
-curl -i https://eleviq-lab.pages.dev/api/identity/price-list \
+curl -i https://eleviq-lab-gateway.workers.dev/api/identity/price-list \
   -H 'Signature-Input: …' -H 'Signature: …' -H 'Signature-Agent: …'</pre>
         <p>Returns <code>200</code> and the full price list.</p>
 
@@ -205,19 +210,16 @@ curl -i https://eleviq-lab.pages.dev/api/identity/price-list \
         <pre class="wire">mkdir wba && cd wba
 npm init -y && npm install web-bot-auth
 
-curl -O https://eleviq-lab.pages.dev/reference/sign-request.mjs
-curl -O https://eleviq-lab.pages.dev/reference/demo-agent.jwk.json
+curl -O https://lab.eleviq.solutions/reference/sign-request.mjs
+curl -O https://lab.eleviq.solutions/reference/demo-agent.jwk.json
 
 node sign-request.mjs \
-  --url https://eleviq-lab.pages.dev/api/identity/price-list \
+  --url https://eleviq-lab-gateway.workers.dev/api/identity/price-list \
   --key demo-agent.jwk.json --send</pre>
         <p>Drop <code>--send</code> and it prints a ready-to-run <code>curl</code> instead.
           Swap in <code>untrusted-agent.jwk.json</code> (also downloadable from
           <code>/reference/</code>) to see the unknown-key rejection. The demo keys are
           throwaway — published on purpose so anyone can be "the demo agent".</p>
-
-        <p class="unlisted-note">Prototype note: the endpoints above go live once the demo is
-          wired to the Function (the next step). The commands are the real ones.</p>
       </section>
 
     </main>
@@ -228,6 +230,6 @@ node sign-request.mjs \
     &nbsp;·&nbsp; <a href="../">ElevIQ Lab</a>
   </footer>
 
-  <script src="../assets/console.js"></script>
+  <script type="module" src="../assets/console.js"></script>
 </body>
 </html>

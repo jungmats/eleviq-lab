@@ -1,0 +1,16 @@
+# ElevIQ Lab agent gateway — Cloudflare Worker.
+#
+#   npm run dev:gateway      local: http://localhost:8787
+#   npm run deploy:gateway   -> https://eleviq-lab-gateway.<subdomain>.workers.dev
+#
+# A custom domain (gateway.eleviq.solutions) can be added later, once
+# eleviq.solutions' nameservers are on Cloudflare.
+
+name = "eleviq-lab-gateway"
+main = "src/index.ts"
+compatibility_date = "2026-09-01"
+compatibility_flags = ["nodejs_compat"]
+workers_dev = true
+
+[observability]
+enabled = true
