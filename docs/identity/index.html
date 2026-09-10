@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <meta name="robots" content="noindex, nofollow">
-  <meta name="gateway" content="https://eleviq-lab-gateway.workers.dev">
+  <meta name="gateway" content="https://eleviq-lab-gateway.gateway-worker.workers.dev">
   <title>Agent Identity — ElevIQ Lab</title>
   <link rel="icon" href="../assets/eleviq_icon.png">
   <link rel="stylesheet" href="../styles.css">
@@ -130,7 +130,7 @@
       <section class="section step">
         <h2><span class="step-n">3</span> Where the check runs</h2>
         <p>Verification runs in a standalone <b>gateway</b> — a small Cloudflare Worker
-          (<code>eleviq-lab-gateway.workers.dev</code>) that holds the trusted key directory
+          (<code>eleviq-lab-gateway.gateway-worker.workers.dev</code>) that holds the trusted key directory
           and runs the <code>web-bot-auth</code> verification. This page is a separate static
           site that just calls it. The gateway is the artifact ElevIQ would deploy for a
           customer:</p>
@@ -183,26 +183,26 @@
           setup to the full reference code.</p>
 
         <h3>A — Ask an AI assistant</h3>
-        <pre class="wire">Fetch https://eleviq-lab-gateway.workers.dev/api/identity/price-list,
+        <pre class="wire">Fetch https://eleviq-lab-gateway.gateway-worker.workers.dev/api/identity/price-list,
 tell me what it returns and why, then follow its instructions to
 retrieve the full resource.</pre>
         <p>A capable assistant reads the <code>401</code> hint and, if it can run the steps
           in D, comes back verified.</p>
 
         <h3>B — Unsigned · nothing to install</h3>
-        <pre class="wire">curl -i https://eleviq-lab-gateway.workers.dev/api/identity/price-list</pre>
+        <pre class="wire">curl -i https://eleviq-lab-gateway.gateway-worker.workers.dev/api/identity/price-list</pre>
         <p>Returns <code>401</code> with a JSON body that spells out how to authenticate —
           the same machine-readable hint a real agent uses to discover it must sign.</p>
 
         <h3>C — Signed via the test helper · just curl</h3>
         <pre class="wire"># 1 · ask the gateway to sign a request for you
 #     (a test aid — NOT part of the security model)
-curl -s -X POST https://eleviq-lab-gateway.workers.dev/api/sign \
+curl -s -X POST https://eleviq-lab-gateway.gateway-worker.workers.dev/api/sign \
   -H 'content-type: application/json' \
-  -d '{"url":"https://eleviq-lab-gateway.workers.dev/api/identity/price-list"}'
+  -d '{"url":"https://eleviq-lab-gateway.gateway-worker.workers.dev/api/identity/price-list"}'
 
 # 2 · replay the three headers it returns
-curl -i https://eleviq-lab-gateway.workers.dev/api/identity/price-list \
+curl -i https://eleviq-lab-gateway.gateway-worker.workers.dev/api/identity/price-list \
   -H 'Signature-Input: …' -H 'Signature: …' -H 'Signature-Agent: …'</pre>
         <p>Returns <code>200</code> and the full price list.</p>
 
@@ -214,7 +214,7 @@ curl -O https://lab.eleviq.solutions/reference/sign-request.mjs
 curl -O https://lab.eleviq.solutions/reference/demo-agent.jwk.json
 
 node sign-request.mjs \
-  --url https://eleviq-lab-gateway.workers.dev/api/identity/price-list \
+  --url https://eleviq-lab-gateway.gateway-worker.workers.dev/api/identity/price-list \
   --key demo-agent.jwk.json --send</pre>
         <p>Drop <code>--send</code> and it prints a ready-to-run <code>curl</code> instead.
           Swap in <code>untrusted-agent.jwk.json</code> (also downloadable from

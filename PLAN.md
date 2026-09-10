@@ -35,7 +35,7 @@ The richer allow/refuse/charge decision is Demo 2.
   - `docs/` → **GitHub Pages**, `lab.eleviq.solutions` (CNAME to `jungmats.github.io`).
     The explainer pages, the browser console, the reference material. Pure static;
     keeps the lab's static content on the same infra as `eleviq.solutions`.
-  - `gateway/` → **Cloudflare Worker**, `eleviq-lab-gateway.workers.dev`. The
+  - `gateway/` → **Cloudflare Worker**, `eleviq-lab-gateway.gateway-worker.workers.dev`. The
     reference implementation: verifies agents, serves the key directory, later
     proxies to origin + policy + payment. This is the artifact ElevIQ deploys for
     a customer (Worker route / Custom Domain in front of their endpoint).
@@ -101,7 +101,7 @@ Future: an MCP endpoint exposing a `fetch_as_agent` tool for connected assistant
    one DNS record for the customer; standard, portable; option 3 (edge) is later.
 4. **Without / with** — fixed two-column contrast.
 5. **Test it from your own tools** — A ask an assistant · B unsigned curl · C `/api/sign`
-   helper · D reference script. URLs: gateway = `eleviq-lab-gateway.workers.dev`,
+   helper · D reference script. URLs: gateway = `eleviq-lab-gateway.gateway-worker.workers.dev`,
    downloads = `lab.eleviq.solutions/reference/`.
 
 **Verdict panel** = the visual feedback of every agent action: large coloured status
@@ -129,7 +129,7 @@ docs/                        static site → GitHub Pages (lab.eleviq.solutions)
   reference/README.md · sign-request.mjs        the reference signer
   reference/*.jwk.json        generated + committed: demo keys (copied from gateway/keys/)
 
-gateway/                     the gateway Worker → Cloudflare (eleviq-lab-gateway.workers.dev)
+gateway/                     the gateway Worker → Cloudflare (eleviq-lab-gateway.gateway-worker.workers.dev)
   wrangler.toml · tsconfig.json
   src/index.ts               fetch handler: OPTIONS · / · route dispatch · 404 · noindex wrapper
   src/routes/directory.ts    GET /.well-known/http-message-signatures-directory
@@ -166,7 +166,7 @@ gateway/                     the gateway Worker → Cloudflare (eleviq-lab-gatew
    (User owns git.)
 2. **Gateway:** `npm install && npm run deploy:gateway` (first run: `wrangler login`).
    → `eleviq-lab-gateway.<subdomain>.workers.dev`. If the subdomain differs from
-   `eleviq-lab-gateway.workers.dev`, update `<meta name="gateway">` in
+   `eleviq-lab-gateway.gateway-worker.workers.dev`, update `<meta name="gateway">` in
    `docs/identity/index.html` and the URLs in §5 + `docs/reference/`.
 3. **Site:** GitHub repo → Settings → Pages → deploy from `main` / `/docs`. Add the
    `lab.eleviq.solutions` CNAME record at the DNS host (→ `jungmats.github.io`).
@@ -185,7 +185,7 @@ Local — `npm install && npm run build`, then in two shells `npm run dev:gatewa
   → 200 + full list. Plain `curl` (no signature) → 401 + problem+json.
 - `curl -sI` any gateway URL shows `X-Robots-Tag: noindex, nofollow`.
 
-Deployed: repeat against `https://eleviq-lab-gateway.workers.dev` and
+Deployed: repeat against `https://eleviq-lab-gateway.gateway-worker.workers.dev` and
 `https://lab.eleviq.solutions`.
 
 ## Later (not this plan)

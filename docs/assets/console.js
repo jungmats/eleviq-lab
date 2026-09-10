@@ -18,7 +18,7 @@ const GATEWAY = (
   LOCAL
     ? "http://localhost:8787"
     : document.querySelector('meta[name="gateway"]')?.content ||
-      "https://eleviq-lab-gateway.workers.dev"
+      "https://eleviq-lab-gateway.gateway-worker.workers.dev"
 ).replace(/\/+$/, "");
 const PATH = "/api/identity/price-list";
 

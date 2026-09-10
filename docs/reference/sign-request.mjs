@@ -12,7 +12,7 @@
  *
  * Use:
  *   node sign-request.mjs --url <gateway URL> [--key demo-agent.jwk.json] [--send]
- *   (gateway: https://eleviq-lab-gateway.workers.dev/api/identity/price-list)
+ *   (gateway: https://eleviq-lab-gateway.gateway-worker.workers.dev/api/identity/price-list)
  *
  *   --url    the URL to call (required)
  *   --key    path to an Ed25519 JWK with a private component (default demo-agent.jwk.json)

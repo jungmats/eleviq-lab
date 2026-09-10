@@ -2,13 +2,13 @@
 
 End-to-end, from nothing, using the real client-side signing code.
 
-- **Gateway** (the API): `https://eleviq-lab-gateway.workers.dev`
+- **Gateway** (the API): `https://eleviq-lab-gateway.gateway-worker.workers.dev`
 - **This site** (script + demo keys): `https://lab.eleviq.solutions`
 
 ## 1. Look, no signature
 
 ```bash
-curl -i https://eleviq-lab-gateway.workers.dev/api/identity/price-list
+curl -i https://eleviq-lab-gateway.gateway-worker.workers.dev/api/identity/price-list
 ```
 
 `401`. The JSON body is the machine-readable hint an agent uses to discover it
@@ -21,9 +21,9 @@ where to get a key and a signer.
 how Web Bot Auth works** — a real agent signs with its own key (step 3).
 
 ```bash
-curl -s -X POST https://eleviq-lab-gateway.workers.dev/api/sign \
+curl -s -X POST https://eleviq-lab-gateway.gateway-worker.workers.dev/api/sign \
   -H 'content-type: application/json' \
-  -d '{"url":"https://eleviq-lab-gateway.workers.dev/api/identity/price-list"}'
+  -d '{"url":"https://eleviq-lab-gateway.gateway-worker.workers.dev/api/identity/price-list"}'
 ```
 
 Replay the three headers it returns against the resource → `200` + the full list.
@@ -39,7 +39,7 @@ curl -O https://lab.eleviq.solutions/reference/sign-request.mjs
 curl -O https://lab.eleviq.solutions/reference/demo-agent.jwk.json
 
 node sign-request.mjs \
-  --url https://eleviq-lab-gateway.workers.dev/api/identity/price-list \
+  --url https://eleviq-lab-gateway.gateway-worker.workers.dev/api/identity/price-list \
   --key demo-agent.jwk.json --send
 ```
 

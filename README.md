@@ -15,7 +15,7 @@ Same shape as the Book Call attribution setup: a **static demo site** driving a
 docs/       →  GitHub Pages  →  https://lab.eleviq.solutions
               the explainer pages + the browser console + the reference material
 
-gateway/    →  Cloudflare Worker  →  https://eleviq-lab-gateway.workers.dev
+gateway/    →  Cloudflare Worker  →  https://eleviq-lab-gateway.gateway-worker.workers.dev
               the reference implementation: verifies visiting agents, serves the
               key directory, and (later) applies policy / payment / origin proxy.
               This is the artifact ElevIQ deploys for a customer.
