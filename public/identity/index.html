@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="robots" content="noindex, nofollow">
+  <title>Agent Identity — ElevIQ Lab</title>
+  <link rel="icon" href="../assets/eleviq_icon.png">
+  <link rel="stylesheet" href="../styles.css">
+  <link rel="stylesheet" href="../lab.css">
+</head>
+<body>
+
+  <header>
+    <a href="https://eleviq.solutions"><img src="../assets/eleviq_logo_v1.6.png" alt="ElevIQ Logo"></a>
+    <p class="brand-line">ElevIQ Lab</p>
+    <p><b>Agent Identity — Web Bot Auth</b></p>
+    <p class="lab-crumbs"><a href="../">Lab home</a> &nbsp;·&nbsp; Demo 1 of 4 &nbsp;·&nbsp; Identify</p>
+  </header>
+
+  <div class="container wide">
+    <main>
+
+      <section class="section step">
+        <h2><span class="step-n">1</span> The problem</h2>
+        <p>When an AI agent requests a page, your server sees an IP address and a
+          <code>User-Agent</code> string. Both are trivially spoofed. You cannot tell an
+          accountable agent — one operated by OpenAI, Anthropic, Perplexity and answerable
+          for its behaviour — from a scraper that simply put their name in the header.</p>
+        <p><b>Web Bot Auth</b> (an IETF draft, live at Cloudflare's edge since March 2026)
+          adds a cryptographic signature to the request. The agent signs with a private key;
+          your server fetches the matching public key from the operator's published directory
+          and verifies it in about a millisecond. The signature cannot be forged, cannot be
+          replayed, and is bound to this exact request.</p>
+        <p class="unlisted-note">This is an unlisted lab page — not indexed, no inbound links.
+          The API endpoint it calls is public on purpose: it is the demo surface an agent
+          talks to.</p>
+      </section>
+
+      <section class="section step">
+        <h2><span class="step-n">2</span> The demo</h2>
+
+        <div class="agent-callout">
+          <b>On this page, you are the agent.</b> When you press <b>Send request</b>, your
+          browser composes, signs and sends the HTTP request an AI agent would make — then
+          shows you exactly what this lab's server did with it.
+        </div>
+
+        <p class="step-lead">The agent requests a protected resource on this lab — the
+          <b>Q3 partner price list</b>. Choose how it behaves, send the request, and watch
+          the server's decision.</p>
+
+        <div class="console">
+          <div class="console-controls">
+            <div class="control-row">
+              <span class="label">1 — How does the agent behave?</span>
+              <div class="scenario" id="scenario">
+                <label>
+                  <input type="radio" name="scenario" value="valid" checked>
+                  <span>
+                    <span class="s-name">Valid signature</span><br>
+                    <span class="s-desc">Signs the request correctly with its own key.</span>
+                  </span>
+                </label>
+                <label>
+                  <input type="radio" name="scenario" value="unsigned">
+                  <span>
+                    <span class="s-name">No signature</span><br>
+                    <span class="s-desc">An ordinary request — what almost every bot sends today.</span>
+                  </span>
+                </label>
+                <label>
+                  <input type="radio" name="scenario" value="unknown-key">
+                  <span>
+                    <span class="s-name">Unknown key</span><br>
+                    <span class="s-desc">Correctly signed, but with a key this server does not trust.</span>
+                  </span>
+                </label>
+              </div>
+            </div>
+
+            <div class="control-row">
+              <span class="label">2 — Which agent is it claiming to be?</span>
+              <select id="ua">
+                <option value="ChatGPT-User/1.0 (+https://openai.com/bot)">ChatGPT-User (OpenAI)</option>
+                <option value="ClaudeBot/1.0 (+https://anthropic.com/claudebot)">ClaudeBot (Anthropic)</option>
+                <option value="PerplexityBot/1.0 (+https://perplexity.ai/bot)">PerplexityBot (Perplexity)</option>
+                <option value="ResearchCrawler/0.1">ResearchCrawler/0.1 (unknown operator)</option>
+              </select>
+              <p class="hint">Sets the <code>User-Agent</code> header. With <b>Valid
+                signature</b> it also selects which demo key signs. Pick <b>No signature</b>
+                and switch between operators — the claim changes, the outcome doesn't.</p>
+            </div>
+
+            <button class="send-btn" id="send">Send request →</button>
+          </div>
+
+          <div class="exchange">
+            <div class="req">
+              <p class="pane-title">What the agent sent</p>
+              <pre class="wire" id="req-wire">Press “Send request” to make the call.</pre>
+              <button class="copy-curl" id="copy-curl" hidden>Copy as curl</button>
+            </div>
+            <div class="res">
+              <p class="pane-title">What the server did</p>
+              <div class="verdict" id="verdict">
+                <div class="status">— Awaiting request</div>
+                <p class="reason">No request sent yet.</p>
+                <dl class="facts" id="facts" hidden></dl>
+              </div>
+            </div>
+          </div>
+
+          <div class="response-body">
+            <p class="pane-title">Response body</p>
+            <pre class="wire" id="res-body">—</pre>
+          </div>
+        </div>
+
+        <div class="log">
+          <span class="label">Request log</span>
+          <ol id="log"></ol>
+        </div>
+      </section>
+
+      <section class="section step">
+        <h2><span class="step-n">3</span> Without / with</h2>
+        <div class="compare">
+          <div class="without">
+            <h3>Without Web Bot Auth</h3>
+            <ul>
+              <li>Identity is a <b>claim</b> — <code>ChatGPT-User</code> could be anyone.</li>
+              <li>You gate by IP range: brittle, undocumented, changes without notice.</li>
+              <li>No way to hold a specific agent accountable after the fact.</li>
+              <li>Every automated client looks roughly the same.</li>
+            </ul>
+          </div>
+          <div class="with">
+            <h3>With Web Bot Auth</h3>
+            <ul>
+              <li>Identity is a <b>proof</b> — cryptographically bound to the operator's
+                published key.</li>
+              <li>You allow, refuse, throttle or charge <b>per verified agent</b>.</li>
+              <li>Every request carries an auditable identity.</li>
+              <li>Unsigned and unknown-key traffic is clearly separated from the rest.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="section step">
+        <h2><span class="step-n">4</span> Test it from your own tools</h2>
+        <p>The console above is a convenience. The demo endpoint is a plain public HTTP API —
+          exactly what a real agent hits. Three ways to try it yourself, from no setup to the
+          full reference code.</p>
+
+        <h3>A — Unsigned · nothing to install</h3>
+        <pre class="wire">curl -i https://eleviq-lab.pages.dev/api/identity/price-list</pre>
+        <p>Returns <code>401</code> with a JSON body that spells out how to authenticate —
+          the same machine-readable hint a real agent uses to discover it must sign.</p>
+
+        <h3>B — Signed via the test helper · just curl</h3>
+        <pre class="wire"># 1 · ask the lab to sign a request for you
+#     (a test aid — NOT part of the security model)
+curl -s -X POST https://eleviq-lab.pages.dev/api/sign \
+  -H 'content-type: application/json' \
+  -d '{"url":"https://eleviq-lab.pages.dev/api/identity/price-list"}'
+
+# 2 · replay the three headers it returns
+curl -i https://eleviq-lab.pages.dev/api/identity/price-list \
+  -H 'Signature-Input: …' -H 'Signature: …' -H 'Signature-Agent: …'</pre>
+        <p>Returns <code>200</code> and the full price list.</p>
+
+        <h3>C — Signed client-side · the real reference code (Node.js 18+)</h3>
+        <pre class="wire">mkdir wba && cd wba
+npm init -y && npm install web-bot-auth
+
+curl -O https://eleviq-lab.pages.dev/reference/sign-request.mjs
+curl -O https://eleviq-lab.pages.dev/reference/demo-agent.jwk.json
+
+node sign-request.mjs \
+  --url https://eleviq-lab.pages.dev/api/identity/price-list \
+  --key demo-agent.jwk.json --send</pre>
+        <p>Drop <code>--send</code> and it prints a ready-to-run <code>curl</code> instead.
+          Swap in <code>untrusted-agent.jwk.json</code> (also downloadable from
+          <code>/reference/</code>) to see the unknown-key rejection. The demo keys are
+          throwaway — published on purpose so anyone can be "the demo agent".</p>
+
+        <h3>D — Ask an AI assistant</h3>
+        <pre class="wire">Fetch https://eleviq-lab.pages.dev/api/identity/price-list, tell me
+what it returns and why, then follow its instructions to retrieve
+the full resource.</pre>
+        <p>A capable assistant reads the 401 hint and, if it can run the steps in C, comes
+          back verified.</p>
+
+        <h3>Where the check runs</h3>
+        <p>This demo verifies the signature in a Cloudflare Pages Function — our own code,
+          using Cloudflare's <code>web-bot-auth</code> library. It runs there so the page can
+          show you every step: header parsing, key lookup, timestamp check, verdict. It is
+          also how ElevIQ would run it for a customer:</p>
+        <ul>
+          <li><b>Nothing for the customer to install or maintain.</b> Verification — and
+            later, policy and payment — runs on Cloudflare infrastructure ElevIQ hosts and
+            keeps current. No plugin, no library in their stack, no server for them to
+            operate.</li>
+          <li><b>Minimal change to their site.</b> The agent-facing endpoint is pointed at
+            the hosted gateway with one DNS record — a subdomain <code>CNAME</code>, or a
+            Cloudflare Worker route if they are already on Cloudflare. Allowed requests pass
+            through to their origin unchanged; the human-facing site is untouched.</li>
+          <li><b>Standard, not lock-in.</b> It is plain RFC 9421 verification and runs on any
+            serverless host if needed.</li>
+        </ul>
+        <p>A customer who wants verification handled entirely at their own edge can instead
+          switch on Cloudflare's native Web Bot Auth — no code at all, but their domain must
+          be a Cloudflare zone. A later phase of this lab demonstrates that path.</p>
+
+        <p class="unlisted-note">Prototype note: the endpoints above go live once the demo is
+          wired to the Function (the next step). The commands are the real ones.</p>
+      </section>
+
+    </main>
+  </div>
+
+  <footer>
+    &copy; 2025–2026 ElevIQ. &nbsp;·&nbsp; <a href="https://eleviq.solutions">eleviq.solutions</a>
+    &nbsp;·&nbsp; <a href="../">ElevIQ Lab</a>
+  </footer>
+
+  <script src="../assets/console.js"></script>
+</body>
+</html>

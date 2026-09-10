@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="robots" content="noindex, nofollow">
+  <title>ElevIQ Lab</title>
+  <link rel="icon" href="assets/eleviq_icon.png">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="lab.css">
+</head>
+<body>
+
+  <header>
+    <a href="https://eleviq.solutions"><img src="assets/eleviq_logo_v1.6.png" alt="ElevIQ Logo"></a>
+    <p class="brand-line">ElevIQ Lab</p>
+    <p><b>Working demonstrations of the agentic web</b></p>
+  </header>
+
+  <div class="container wide">
+    <main>
+
+      <section class="section">
+        <h1 class="page-title">The lab</h1>
+        <p>ElevIQ's <a href="https://eleviq.solutions/technologies.html">Technologies &amp;
+          Standards</a> page describes the stack for making a site ready for AI agents and
+          for monetizing agent access. This lab <b>demonstrates</b> it — each piece running,
+          end to end, with the reference code alongside.</p>
+        <p>The problems agent-readiness and monetization work surface fall into a pipeline:
+          an agent has to be <b>identified</b>, a <b>decision</b> made about what it may do,
+          access <b>charged</b> for where that applies, and the activity <b>measured</b> and
+          attributed.</p>
+        <p class="unlisted-note">Unlisted: this lab is not indexed and nothing links to it
+          from eleviq.solutions. Share the exact URLs. The API endpoints behind the demos are
+          public by design — they are what a visiting agent talks to.</p>
+      </section>
+
+      <section class="section">
+        <h2>The pipeline</h2>
+        <div class="pipeline">
+
+          <div class="stage">
+            <span class="badge live">Live</span>
+            <h3>Identify</h3>
+            <p class="stage-sub">Who is this agent — really?</p>
+            <p>Cryptographic agent identity with Web Bot Auth. Tell an accountable agent from
+              a scraper wearing its name; verify a signature that can't be forged or replayed.</p>
+            <a class="button" href="identity/">Open demo →</a>
+            <p class="stack">Technologies: Web Bot Auth · RFC 9421 HTTP Message Signatures · Ed25519</p>
+          </div>
+
+          <div class="stage is-soon">
+            <span class="badge soon">Coming</span>
+            <h3>Decide</h3>
+            <p class="stage-sub">What is this agent allowed to do?</p>
+            <p>Policy-based access and refusal, keyed on verified identity and declared
+              purpose — with the stated policy (robots.txt, RSL) and the enforced policy
+              shown side by side.</p>
+            <p class="stack">Technologies: policy engine · robots.txt Content Signals · RSL</p>
+          </div>
+
+          <div class="stage is-soon">
+            <span class="badge soon">Coming</span>
+            <h3>Charge</h3>
+            <p class="stage-sub">What does access cost?</p>
+            <p>Payment required over HTTP 402 — Cloudflare Pay Per Crawl for the managed
+              path, and x402 for open, on-chain settlement an agent can complete unattended.</p>
+            <p class="stack">Technologies: HTTP 402 · Cloudflare Pay Per Crawl · x402</p>
+          </div>
+
+          <div class="stage is-soon">
+            <span class="badge soon">Coming</span>
+            <h3>Measure</h3>
+            <p class="stage-sub">What happened, and who sent the traffic?</p>
+            <p>An attribution dashboard: which agents came, what they did, and which human
+              visits an AI assistant actually referred back.</p>
+            <p class="stack">Technologies: Workers Analytics Engine · AI-referral attribution</p>
+          </div>
+
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>Open problem — monetization after ads</h2>
+        <p>Agents don't render ads, don't click them, and increasingly strip them. A large
+          part of the web is funded by a model that agent traffic breaks. What replaces it —
+          per-use access, licensing, agent-native commerce, outcome-based compensation when
+          content is cited — is unsettled. The lab will host experiments here as the
+          standards firm up.</p>
+      </section>
+
+    </main>
+  </div>
+
+  <footer>
+    &copy; 2025–2026 ElevIQ. &nbsp;·&nbsp; <a href="https://eleviq.solutions">eleviq.solutions</a>
+  </footer>
+
+</body>
+</html>
