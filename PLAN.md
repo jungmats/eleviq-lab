@@ -1,11 +1,20 @@
 # ElevIQ Lab — Demo 1: Agent Identity (Web Bot Auth)
 
-**Status (2026-09-10): built; restructured to the split architecture.** Real
-client-side signing in the browser + standalone **gateway Worker** verification,
-three scenarios green. Reference script + `/api/sign` test aid working.
-Restructure to `docs/` (site) + `gateway/` (Worker) done; needs a re-test on the
-new layout, then: deploy the gateway (`npm run deploy:gateway`) and turn on
-GitHub Pages for `docs/`.
+**Status (2026-09-11): deployed and live.** `lab.eleviq.solutions` (GitHub
+Pages) + `eleviq-lab-gateway.gateway-worker.workers.dev` (Cloudflare Worker),
+verified end-to-end in a real browser and via all four external test paths.
+
+Since initial deploy:
+- **Identity honesty fix:** trust store collapsed to one "ElevIQ Lab demo
+  agent" key (was 3 keys impersonating OpenAI/Anthropic/Perplexity). The
+  console's dropdown is now purely the *claimed* identity; signing always uses
+  the one demo key, so "Claimed" and "Verified as" can visibly differ. Added
+  §3 "What makes a real agent's key trustworthy" (secret key + vetted registry).
+- **Access log:** D1 table `access_log` (`gateway/schema.sql`), one row per
+  request to `/api/identity/price-list` with outcome + identity. Foundation
+  for Demo 4; no dashboard yet, inspect via `wrangler d1 execute`.
+
+Next: Demo 2 — Decide.
 
 ## Context
 
@@ -135,10 +144,13 @@ gateway/                     the gateway Worker → Cloudflare (eleviq-lab-gatew
   src/routes/directory.ts    GET /.well-known/http-message-signatures-directory
   src/routes/price-list.ts   GET /api/identity/price-list → 200 full list | 401 teaser + problem+json
   src/routes/sign.ts         POST /api/sign → LABELLED test-aid signer (valid | unknown-key | expired)
-  src/lib/keys.ts            load committed demo JWKs; keyid → operator registry; directory list
+  src/lib/keys.ts            trust store: ONE "ElevIQ Lab demo agent" key; keyid → agent metadata; directory list
   src/lib/verify.ts          wrap web-bot-auth verify(); resolver checks keyid vs trust store; typed verdict
   src/lib/http.ts            json() / problem() (application/problem+json) / CORS helpers
-  keys/*.jwk.json            committed DEMO keypairs (openai · anthropic · perplexity · demo-agent · untrusted-agent)
+  src/lib/log.ts             logAccess() — writes one row per request to D1 (fire-and-forget via ctx.waitUntil)
+  keys/*.jwk.json            committed DEMO keypairs (demo-agent · untrusted-agent)
+  schema.sql                 D1 access_log table
+  wrangler.toml              includes the [[d1_databases]] binding (DB → eleviq-lab-log)
 ```
 
 ## Key implementation notes

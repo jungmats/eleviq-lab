@@ -21,19 +21,20 @@ import { handleDirectory } from "./routes/directory";
 import { handlePriceList } from "./routes/price-list";
 import { handleSign } from "./routes/sign";
 import { json, preflight } from "./lib/http";
+import type { Env } from "./lib/log";
 
 const VERSION = "2026-09-10-demo1";
 const SITE = "https://lab.eleviq.solutions";
 
 export default {
-  async fetch(request: Request): Promise<Response> {
+  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
     const path = url.pathname.replace(/\/+$/, "") || "/";
 
     if (request.method === "OPTIONS") return withHeaders(preflight());
 
     try {
-      return withHeaders(await route(request, path, url));
+      return withHeaders(await route(request, path, url, env, ctx));
     } catch (err) {
       return withHeaders(
         json({ error: "gateway_error", detail: String((err as Error)?.message ?? err) }, 500),
@@ -42,14 +43,14 @@ export default {
   },
 };
 
-async function route(request: Request, path: string, url: URL): Promise<Response> {
+async function route(request: Request, path: string, url: URL, env: Env, ctx: ExecutionContext): Promise<Response> {
   if (path === "/" && request.method === "GET") return info(url);
 
   if (path === "/.well-known/http-message-signatures-directory" && request.method === "GET") {
     return handleDirectory();
   }
   if (path === "/api/identity/price-list" && request.method === "GET") {
-    return handlePriceList(request);
+    return handlePriceList(request, env, ctx);
   }
   if (path === "/api/sign" && request.method === "POST") {
     return handleSign(request);

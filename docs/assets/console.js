@@ -7,9 +7,13 @@
  * The gateway is a separate origin (the reference artifact). Its URL comes from
  * <meta name="gateway"> so it can be repointed without touching this file.
  *
- * Note on the "claimed identity": browsers do not let a script set the
- * User-Agent header, so the console sends the claim in X-Demo-Agent-Claim.
- * The verifier reads either that or a real User-Agent (what curl would send).
+ * "Claimed" vs "Verified": signing always uses the ONE demo-agent key — the
+ * dropdown only sets what the request CLAIMS to be (via X-Demo-Agent-Claim,
+ * since browsers won't let a script set User-Agent; curl would use
+ * -H 'User-Agent: …'). The verified identity comes from the key, so with
+ * "Valid signature" the claim and the verified identity are deliberately
+ * different — that gap IS the point: a signature proves key possession, not
+ * whatever name the request happens to claim.
  */
 import { sign, generateNonce, signerFromJWK } from "./agent-sign.js";
 
@@ -21,13 +25,6 @@ const GATEWAY = (
       "https://eleviq-lab-gateway.gateway-worker.workers.dev"
 ).replace(/\/+$/, "");
 const PATH = "/api/identity/price-list";
-
-// dropdown value (the claimed UA string)  ->  which trusted demo key signs
-const OP_KEY = {
-  "ChatGPT-User/1.0 (+https://openai.com/bot)": "openai",
-  "ClaudeBot/1.0 (+https://anthropic.com/claudebot)": "anthropic",
-  "PerplexityBot/1.0 (+https://perplexity.ai/bot)": "perplexity",
-};
 
 const $ = (id) => document.getElementById(id);
 const scenarioOf = () => document.querySelector('input[name="scenario"]:checked').value;
@@ -48,7 +45,9 @@ async function buildRequest(scenario, ua) {
   const headers = { Accept: "application/json", "X-Demo-Agent-Claim": ua };
   if (scenario === "unsigned") return { target, headers };
 
-  const keyName = scenario === "unknown-key" ? "untrusted-agent" : OP_KEY[ua];
+  // Always signs as the one "ElevIQ Lab demo agent" key — the dropdown never
+  // changes which key signs, only what the request claims (see file header).
+  const keyName = scenario === "unknown-key" ? "untrusted-agent" : "demo-agent";
   const jwk = await loadKey(keyName);
   const signatureAgent = `sig1="${GATEWAY}";type=directory`;
   const now = new Date();
@@ -116,10 +115,12 @@ function interpret(scenario, ua, httpStatus, data) {
     return {
       kind: "ok",
       status: "✅  VERIFIED · 200",
-      reason: "Signature valid and key found in a trusted directory. Full resource served.",
+      reason:
+        "Signature valid and key found in a trusted directory. Full resource served. " +
+        "Note: verified identity comes from the KEY, not the claim below — they can differ.",
       facts: [
-        ["Verified as", v.agent],
-        ["Operator", v.operator + (v.operator_domain ? ` (${v.operator_domain})` : "")],
+        ["Claimed", ua],
+        ["Verified as", v.agent + ` (${v.operator})`],
         ["Key ID", v.keyid],
         ["Signed at", new Date(v.signed_at).toLocaleTimeString()],
         ["Expires", new Date(v.expires).toLocaleTimeString()],

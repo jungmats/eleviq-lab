@@ -44,8 +44,9 @@
         <div class="agent-callout">
           <b>On this page, you are the agent.</b> When you press <b>Send request</b>, your
           browser composes, signs and sends the HTTP request an AI agent would make — then
-          shows you exactly what this lab's server did with it. The operator keys are lab
-          stand-ins labelled with real names, not the operators' actual keys.
+          shows you exactly what this lab's server did with it. Signing always uses one
+          throwaway <b>"ElevIQ Lab demo agent"</b> key — never OpenAI's, Anthropic's or
+          anyone else's real key. See "Claimed" vs "Verified as" below.
         </div>
 
         <p class="step-lead">The agent requests a protected resource on this lab — the
@@ -88,12 +89,13 @@
                 <option value="ClaudeBot/1.0 (+https://anthropic.com/claudebot)">ClaudeBot (Anthropic)</option>
                 <option value="PerplexityBot/1.0 (+https://perplexity.ai/bot)">PerplexityBot (Perplexity)</option>
               </select>
-              <p class="hint">The claimed identity. With <b>Valid signature</b> the console
-                signs with that operator's demo key, so the server verifies it from the key —
-                not the claim. With <b>No signature</b>, switch operators: the claim changes,
-                the outcome doesn't. (Browsers can't set <code>User-Agent</code> from a
-                script, so the console sends the claim in <code>X-Demo-Agent-Claim</code>;
-                <code>curl</code> would use <code>-H&nbsp;'User-Agent: …'</code>.)</p>
+              <p class="hint">The claimed identity — just a string, never what's actually
+                signed. Try <b>Valid signature</b> with each option: the server always
+                verifies the same key ("ElevIQ Lab demo agent") no matter which agent it
+                claims to be — the claim and the verified identity are shown separately in
+                the result. (Browsers can't set <code>User-Agent</code> from a script, so the
+                console sends the claim in <code>X-Demo-Agent-Claim</code>; <code>curl</code>
+                would use <code>-H&nbsp;'User-Agent: …'</code>.)</p>
             </div>
 
             <button class="send-btn" id="send">Send request →</button>
@@ -149,6 +151,29 @@
         <p>A customer who wants verification handled entirely at their own edge can instead
           switch on Cloudflare's native Web Bot Auth — no code at all, but their domain must
           be a Cloudflare zone. A later phase of this lab demonstrates that path.</p>
+
+        <h3>What makes a real agent's key trustworthy</h3>
+        <p>The demo's key is published on purpose — anyone can download it and sign as
+          "the ElevIQ Lab demo agent" (that's what makes the console playable). A real
+          operator's key is trustworthy for two reasons this demo deliberately doesn't have:</p>
+        <ul>
+          <li><b>The private half is genuinely secret.</b> A real operator generates its
+            keypair once, keeps the private half in a secret store only it can reach, and
+            publishes only the public half. A verified signature then proves <i>possession of
+            that secret</i> — it cannot be forged or replayed onto a different request.</li>
+          <li><b>Its directory is recognised, not just reachable.</b> Fetching a directory
+            over HTTPS from the domain named in <code>Signature-Agent</code> proves "whoever
+            controls that domain signed this" — but that alone would let anyone who registers
+            a domain and generates a keypair pass as a legitimate agent. Real deployments
+            check the directory against a vetted registry — Cloudflare's Verified Bots
+            program (extended with message signatures) or the emerging IETF/Bedrock
+            agent-directory registry — so a verifier trusts <i>known, recognised</i> agent
+            identities, not every syntactically valid signature.</li>
+        </ul>
+        <p>Put together: a signature proves the caller holds a specific key; a registry says
+          that key belongs to someone the ecosystem has actually vetted. This lab's trust
+          store is one unregistered demo key — good for teaching the mechanism, not a stand-in
+          for either of those guarantees.</p>
       </section>
 
       <section class="section step">

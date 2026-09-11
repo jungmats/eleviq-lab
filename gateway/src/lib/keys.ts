@@ -1,19 +1,32 @@
 /**
  * The lab's key registry.
  *
- * Every key here is a committed DEMO key (see keys/ and scripts/gen-keys.mjs) —
- * throwaway, published on purpose. The three operator entries are lab stand-ins
- * labelled with real operator names; they are NOT the operators' real keys.
+ * Trust here has ONE entry: "ElevIQ Lab demo agent" — a single throwaway
+ * keypair (see keys/demo-agent.jwk.json + scripts/gen-keys.mjs). A signature
+ * from it proves possession of that one key, nothing more. It is NOT labelled
+ * as OpenAI, Anthropic or anyone else — the demo used to do that, which
+ * overstated what the crypto actually proves. See identity/index.html §2 for
+ * how the console's "claimed identity" dropdown is now separate from this.
  *
- * In a real deployment the private halves would live in Cloudflare secrets and
- * only the public halves would appear in the directory.
+ * `keys/untrusted-agent.jwk.json` is deliberately NOT in this registry — it
+ * exists only so the "unknown key" scenario has something valid-but-untrusted
+ * to sign with.
+ *
+ * What makes a REAL agent's key trustworthy that this demo key isn't:
+ *   1. the private half is genuinely secret — only the operator ever holds it
+ *      (ours is published on purpose, so anyone can play "the demo agent");
+ *   2. its directory is reachable at a domain the operator controls, AND that
+ *      domain is recognised — via a vetted registry (Cloudflare Verified Bots,
+ *      the IETF/Bedrock agent-directory registry) — not just "any signature
+ *      that verifies". A verifier trusting every syntactically valid signature
+ *      would trust anyone who bothered to generate a keypair.
+ *
+ * In a real deployment the private half lives in a Cloudflare secret; only the
+ * public half appears in the directory.
  */
 import { verifierFromJWK } from "web-bot-auth/crypto";
 import type { WebBotVerifier } from "web-bot-auth";
 
-import openai from "../../keys/openai.jwk.json";
-import anthropic from "../../keys/anthropic.jwk.json";
-import perplexity from "../../keys/perplexity.jwk.json";
 import demoAgent from "../../keys/demo-agent.jwk.json";
 
 export interface AgentMeta {
@@ -30,10 +43,7 @@ type Jwk = JsonWebKey & Record<string, string>;
 const asJwk = (x: unknown) => x as Jwk;
 
 const REGISTRY: Array<{ jwk: Jwk; meta: AgentMeta }> = [
-  { jwk: asJwk(openai),     meta: { name: "ChatGPT-User",          operator: "OpenAI",     domain: "openai.com" } },
-  { jwk: asJwk(anthropic),  meta: { name: "ClaudeBot",             operator: "Anthropic",  domain: "anthropic.com" } },
-  { jwk: asJwk(perplexity), meta: { name: "PerplexityBot",         operator: "Perplexity", domain: "perplexity.ai" } },
-  { jwk: asJwk(demoAgent),  meta: { name: "ElevIQ Lab demo agent", operator: "ElevIQ",     domain: "eleviq.solutions" } },
+  { jwk: asJwk(demoAgent), meta: { name: "ElevIQ Lab demo agent", operator: "ElevIQ", domain: "eleviq.solutions" } },
 ];
 
 /** Strip the private component — what goes in the public directory. */

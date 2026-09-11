@@ -14,3 +14,12 @@ workers_dev = true
 
 [observability]
 enabled = true
+
+# Access log: every verified/refused request to the protected resource, with
+# identity. schema.sql defines the table; run it once per environment:
+#   npx wrangler d1 execute eleviq-lab-log --local  --file=schema.sql
+#   npx wrangler d1 execute eleviq-lab-log --remote --file=schema.sql
+[[d1_databases]]
+binding = "DB"
+database_name = "eleviq-lab-log"
+database_id = "861ffec1-ad63-444f-8b61-e5a4bdc91edd"

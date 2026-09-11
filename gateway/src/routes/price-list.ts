@@ -14,6 +14,7 @@
  */
 import { checkIdentity } from "../lib/verify";
 import { json, problem } from "../lib/http";
+import { logAccess, type Env } from "../lib/log";
 
 const FULL_LIST = {
   resource: "Q3 partner price list",
@@ -36,11 +37,21 @@ const TEASER = {
 
 const SITE = "https://lab.eleviq.solutions";
 
-export async function handlePriceList(request: Request): Promise<Response> {
+export async function handlePriceList(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
   const verdict = await checkIdentity(request);
   const directory = new URL("/.well-known/http-message-signatures-directory", request.url).toString();
+  const claimedUa = request.headers.get("X-Demo-Agent-Claim") || request.headers.get("User-Agent") || null;
 
   if (verdict.ok) {
+    logAccess(env, ctx, {
+      path: "/api/identity/price-list",
+      outcome: "verified",
+      status: 200,
+      keyid: verdict.keyid,
+      agentName: verdict.agent.name,
+      agentOperator: verdict.agent.operator,
+      claimedUa,
+    });
     return json({
       ...FULL_LIST,
       verified: {
@@ -53,6 +64,14 @@ export async function handlePriceList(request: Request): Promise<Response> {
       },
     });
   }
+
+  logAccess(env, ctx, {
+    path: "/api/identity/price-list",
+    outcome: verdict.reason,
+    status: 401,
+    keyid: verdict.keyid,
+    claimedUa,
+  });
 
   return problem(
     401,

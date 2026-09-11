@@ -40,14 +40,33 @@ See [`PLAN.md`](PLAN.md).
 | | |
 |---|---|
 | `GET /` | describes the gateway |
-| `GET /.well-known/http-message-signatures-directory` | the trusted public keys |
+| `GET /.well-known/http-message-signatures-directory` | the trusted public keys (currently one: "ElevIQ Lab demo agent") |
 | `GET /api/identity/price-list` | the protected resource — `200` for a verified agent, else `401` + how-to-authenticate |
 | `POST /api/sign` | **test aid** — signs with a demo key so you can try the verified path with just curl. Not part of the security model. |
+
+Trust is a single throwaway key — no OpenAI/Anthropic/etc. impersonation. The
+console's "claimed identity" dropdown only sets an unverified claim
+(`X-Demo-Agent-Claim` / `User-Agent`); the verified identity always comes from
+the key. See `identity/index.html` §3 "What makes a real agent's key
+trustworthy" for what a real deployment adds (a secret key + a vetted registry).
+
+## Access log
+
+Every request to `/api/identity/price-list` is logged to D1 (`access_log`
+table, see `gateway/schema.sql`) — timestamp, path, outcome, status, the
+verified key/agent if any, and the claimed identity. Foundation for Demo 4
+(Measure); no dashboard yet. Inspect it with:
+
+```bash
+npx wrangler d1 execute eleviq-lab-log --config gateway/wrangler.toml --remote \
+  --command "SELECT ts, outcome, status, agent_name, claimed_ua FROM access_log ORDER BY ts DESC LIMIT 20"
+```
 
 ## Develop
 
 ```bash
 npm install
+npx wrangler d1 execute eleviq-lab-log --config gateway/wrangler.toml --local --file=gateway/schema.sql  # once
 npm run build          # bundles web-bot-auth for the browser, copies demo keys into docs/reference/
 npm run dev:gateway    # gateway Worker at http://localhost:8787
 npm run dev:site       # static site at http://localhost:8000 (console auto-targets :8787 on localhost)

@@ -28,7 +28,7 @@ await esbuild.build({
 });
 console.log("bundled  docs/assets/agent-sign.js");
 
-const PUBLISHED_KEYS = ["demo-agent", "openai", "anthropic", "perplexity", "untrusted-agent"];
+const PUBLISHED_KEYS = ["demo-agent", "untrusted-agent"];
 await mkdir(join(ROOT, "docs/reference"), { recursive: true });
 for (const name of PUBLISHED_KEYS) {
   await cp(join(ROOT, `gateway/keys/${name}.jwk.json`), join(ROOT, `docs/reference/${name}.jwk.json`));
