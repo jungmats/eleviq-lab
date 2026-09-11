@@ -36,6 +36,21 @@ Since initial deploy:
   the resolver — raised to `3600`s to match observed real-world practice.
   `identity/index.html` §3 updated to state this precisely: confirmed with
   ChatGPT Work, not confirmed for consumer ChatGPT.
+- **Nonce replay protection built and deployed**, closing the gap the
+  captured-signature replay exposed. `gateway/src/lib/nonce.ts`: after
+  `verify()` already confirms a signature is genuine and trusted, claim its
+  nonce in a new KV namespace (`NONCES`, TTL = seconds until that signature's
+  own `expires` — no cleanup job needed). First use succeeds; a second use of
+  the identical signature → `401`, `reason: "replayed"`. A missing nonce
+  (allowed by spec) just skips this specific check rather than failing the
+  request. **Proved live**: signed one request via `/api/sign`, replayed the
+  same headers twice — first `200`, second `401 replayed`; two independently
+  signed requests each still `200` (no false positives).
+- **Open, not yet decided:** a visible (non-blocking) "claim doesn't match
+  verified identity" flag in the console verdict when Claimed ≠ Verified for
+  a *valid* signature — proposed, not built, pending confirmation. Distinct
+  from replay: this is about the claim never being signed data at all, not
+  about reuse.
 
 Next: Demo 2 — Decide.
 

@@ -23,3 +23,9 @@ enabled = true
 binding = "DB"
 database_name = "eleviq-lab-log"
 database_id = "861ffec1-ad63-444f-8b61-e5a4bdc91edd"
+
+# Nonce replay protection: a signature's nonce is remembered until it would
+# have expired anyway (TTL set per-entry in code), then KV lets it go.
+[[kv_namespaces]]
+binding = "NONCES"
+id = "7cf4d6ff9a28415aa443a9426a513178"

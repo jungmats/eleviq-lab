@@ -4,13 +4,12 @@
  *
  * Writes via ctx.waitUntil so logging never delays or can fail the response.
  */
-export interface Env {
-  DB: D1Database;
-}
+import type { Env } from "./env";
+export type { Env };
 
 export interface AccessLogEntry {
   path: string;
-  outcome: "verified" | "unsigned" | "unknown-key" | "expired" | "invalid";
+  outcome: "verified" | "unsigned" | "unknown-key" | "expired" | "invalid" | "replayed";
   status: number;
   keyid?: string;
   agentName?: string;

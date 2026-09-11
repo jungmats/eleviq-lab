@@ -24,7 +24,7 @@ import { handlePriceList } from "./routes/price-list";
 import { handleSign } from "./routes/sign";
 import { handleDebugCf } from "./routes/debug";
 import { json, preflight } from "./lib/http";
-import type { Env } from "./lib/log";
+import type { Env } from "./lib/env";
 
 const VERSION = "2026-09-10-demo1";
 const SITE = "https://lab.eleviq.solutions";

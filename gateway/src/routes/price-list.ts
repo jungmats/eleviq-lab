@@ -38,7 +38,7 @@ const TEASER = {
 const SITE = "https://lab.eleviq.solutions";
 
 export async function handlePriceList(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
-  const verdict = await checkIdentity(request);
+  const verdict = await checkIdentity(request, env);
   const directory = new URL("/.well-known/http-message-signatures-directory", request.url).toString();
   const claimedUa = request.headers.get("X-Demo-Agent-Claim") || request.headers.get("User-Agent") || null;
 

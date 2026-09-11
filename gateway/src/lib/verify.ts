@@ -16,6 +16,8 @@ import { verifierFromJWK } from "web-bot-auth/crypto";
 import { trustStore, type AgentMeta } from "./keys";
 import { findRegistryEntry } from "./registry";
 import { fetchOperatorKey } from "./external-directory";
+import { claimNonce } from "./nonce";
+import type { Env } from "./env";
 
 export type TrustTier = "own" | `registry:${string}`;
 
@@ -30,12 +32,12 @@ export type Verdict =
     }
   | {
       ok: false;
-      reason: "unsigned" | "unknown-key" | "expired" | "invalid";
+      reason: "unsigned" | "unknown-key" | "expired" | "invalid" | "replayed";
       detail: string;
       keyid?: string;
     };
 
-export async function checkIdentity(request: Request): Promise<Verdict> {
+export async function checkIdentity(request: Request, env: Env): Promise<Verdict> {
   const hasSig = request.headers.get("Signature");
   const hasInput = request.headers.get("Signature-Input");
   if (!hasSig || !hasInput) {
@@ -90,6 +92,23 @@ export async function checkIdentity(request: Request): Promise<Verdict> {
       // Shouldn't happen — verify() only resolves with a verifier the resolver returned.
       return { ok: false, reason: "invalid", keyid: result.keyid, detail: "internal: no matched tier" };
     }
+
+    // Replay check — only now, after the signature is already confirmed
+    // genuine and trusted. A missing nonce (allowed by the spec) just skips
+    // this specific protection rather than failing the whole request.
+    if (result.nonce) {
+      const ttlSeconds = Math.max(1, (result.expires.getTime() - Date.now()) / 1000);
+      const firstUse = await claimNonce(env, result.nonce, ttlSeconds);
+      if (!firstUse) {
+        return {
+          ok: false,
+          reason: "replayed",
+          keyid: result.keyid,
+          detail: "This exact signature (same nonce) has already been used once. A valid signature can only be used once.",
+        };
+      }
+    }
+
     return {
       ok: true,
       keyid: result.keyid,
