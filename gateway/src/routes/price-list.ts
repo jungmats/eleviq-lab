@@ -53,6 +53,14 @@ export async function handlePriceList(request: Request, env: Env, ctx: Execution
       claimedUa,
       trustTier: verdict.tier,
     });
+    // The claim (User-Agent / X-Demo-Agent-Claim) is never signed data — see
+    // §3 "How real trust works". This is informational, not a security
+    // check: it never affects the 200, only whether the console/curl caller
+    // sees a note that what was claimed and what verified aren't the same
+    // thing. Simple case-insensitive equality — almost anything but an exact
+    // echo of the verified agent's name will show as "doesn't match", which
+    // is the point: the claim was never expected to match at all.
+    const claimMatches = !!claimedUa && claimedUa.trim().toLowerCase() === verdict.agent.name.trim().toLowerCase();
     return json({
       ...FULL_LIST,
       verified: {
@@ -63,6 +71,8 @@ export async function handlePriceList(request: Request, env: Env, ctx: Execution
         trust_tier: verdict.tier,
         signed_at: verdict.created,
         expires: verdict.expires,
+        claimed_identity: claimedUa,
+        claim_matches_verified_identity: claimMatches,
       },
     });
   }

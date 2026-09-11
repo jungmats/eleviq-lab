@@ -90,11 +90,12 @@ function curlFor(target, headers, ua, signed) {
   return parts.join("\n");
 }
 
-function setVerdict(kind, status, reason, facts) {
+function setVerdict(kind, status, reason, facts, claimMismatch) {
   const v = $("verdict");
   v.className = "verdict " + ({ ok: "is-ok", bad: "is-bad", warn: "is-warn" }[kind] || "");
   v.querySelector(".status").textContent = status;
   v.querySelector(".reason").textContent = reason;
+  $("claim-warning").hidden = !claimMismatch;
   const dl = $("facts");
   dl.innerHTML = "";
   for (const [k, val] of facts) dl.insertAdjacentHTML("beforeend", `<dt>${k}</dt><dd>${val}</dd>`);
@@ -115,9 +116,8 @@ function interpret(scenario, ua, httpStatus, data) {
     return {
       kind: "ok",
       status: "✅  VERIFIED · 200",
-      reason:
-        "Signature valid and key found in a trusted directory. Full resource served. " +
-        "Note: verified identity comes from the KEY, not the claim below — they can differ.",
+      reason: "Signature valid and key found in a trusted directory. Full resource served.",
+      claimMismatch: v.claim_matches_verified_identity === false,
       facts: [
         ["Claimed", ua],
         ["Verified as", v.agent + ` (${v.operator})`],
@@ -188,7 +188,7 @@ async function send() {
     const data = await res.json().catch(() => ({}));
 
     const r = interpret(scenario, ua, res.status, data);
-    setVerdict(r.kind, r.status, r.reason, r.facts);
+    setVerdict(r.kind, r.status, r.reason, r.facts, r.claimMismatch);
     $("res-body").textContent = `HTTP/1.1 ${res.status} ${res.statusText}\n\n` + JSON.stringify(data, null, 2);
 
     const summary =

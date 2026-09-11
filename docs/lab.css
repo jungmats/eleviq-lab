@@ -284,6 +284,17 @@ pre.wire .muted { color: var(--text-muted); }
   color: var(--text);
 }
 
+/* informational, not an error — the request still succeeded */
+.claim-warning {
+  margin: 0.55rem 0 0;
+  padding: 0.35rem 0.6rem;
+  border-radius: 6px;
+  background: var(--warn-bg);
+  color: var(--warn);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
 .facts {
   margin: 0.8rem 0 0;
   display: grid;
