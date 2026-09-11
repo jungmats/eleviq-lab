@@ -167,9 +167,27 @@
             identities, not every syntactically valid signature.</li>
         </ul>
         <p>Put together: a signature proves the caller holds a specific key; a registry says
-          that key belongs to someone the ecosystem has actually vetted. This lab's trust
-          store is one unregistered demo key — good for teaching the mechanism, not a stand-in
-          for either of those guarantees.</p>
+          that key belongs to someone the ecosystem has actually vetted.</p>
+
+        <h3>A second trust tier — live, not hypothetical</h3>
+        <p>Alongside the lab's own demo key, the gateway trusts one real, external operator:
+          <b>OpenAI, via <code>chatgpt.com</code>'s own published directory</b> — fetched live
+          at verify time (short-cached, never copied) and checked against a small allow-list
+          the gateway holds, exactly as described above. If the signature is genuine, the
+          result reads <code>"trust_tier": "registry:https://chatgpt.com"</code> instead of
+          <code>"own"</code>.</p>
+        <p><b>Confirmed working with "ChatGPT Work"</b> (OpenAI's enterprise/agentic product) —
+          asking it to fetch a protected endpoint on this gateway produced a genuine,
+          correctly-verified Web Bot Auth signature, whose key matched
+          <code>chatgpt.com</code>'s live directory exactly. <b>Not confirmed for consumer
+          ChatGPT</b> — in our own testing it could not fetch an unlisted URL like this one at
+          all (see step 5-A). Web Bot Auth is brand new and, so far, scoped to specific
+          agentic products rather than every surface a company ships; this lab reflects
+          exactly what's been confirmed, no more.</p>
+        <p>Anthropic and Perplexity do not yet publish a directory at their main domains —
+          added the moment one does. Claiming to be <code>chatgpt.com</code> without holding
+          OpenAI's actual key still fails: the gateway checks the real live directory, finds
+          no match, and rejects it — try it yourself in step 5.</p>
       </section>
 
       <section class="section step">

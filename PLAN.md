@@ -19,10 +19,25 @@ Since initial deploy:
   Confirmed real signal only for "ChatGPT Work"; confirmed the presence of a
   genuine, matching Web Bot Auth signature from it too (see Tier 2 below).
   Not used for any trust decision.
-- **Tier 2 design written** (below) — real operator trust (`chatgpt.com`),
-  confirmed feasible with a live example. **Not implemented yet.**
+- **Tier 2 built and deployed** (design below, now implemented):
+  `gateway/src/lib/registry.ts` (allow-list, one entry: `chatgpt.com`),
+  `gateway/src/lib/external-directory.ts` (live fetch, in-memory cache,
+  fail-closed, matches by recomputed thumbprint not raw `kid`), `verify.ts`
+  extended to try Tier 1 then Tier 2, `trust_tier` column added to
+  `access_log` (migrated on both local and remote D1).
+  **Proved live**, not just tested: replayed the real captured ChatGPT Work
+  signature from `/api/debug/cf` against `/api/identity/price-list` →
+  genuine `200`, `trust_tier: "registry:https://chatgpt.com"`. Also proved
+  the rejection path — a request claiming `Signature-Agent: chatgpt.com` but
+  signed with an untrusted key → correctly `401 unknown-key`, only after the
+  gateway actually checked chatgpt.com's real directory and found no match.
+  **Fix found along the way:** `maxAge` was `600`s (10 min), rejecting the
+  real signature's 1-hour `created`→`expires` window before it ever reached
+  the resolver — raised to `3600`s to match observed real-world practice.
+  `identity/index.html` §3 updated to state this precisely: confirmed with
+  ChatGPT Work, not confirmed for consumer ChatGPT.
 
-Next: implement Tier 2, then Demo 2 — Decide.
+Next: Demo 2 — Decide.
 
 ## Context
 
@@ -208,7 +223,7 @@ Local — `npm install && npm run build`, then in two shells `npm run dev:gatewa
 Deployed: repeat against `https://eleviq-lab-gateway.gateway-worker.workers.dev` and
 `https://lab.eleviq.solutions`.
 
-## Tier 2 — real operator trust (design, not yet built)
+## Tier 2 — real operator trust (built and deployed, 2026-09-11)
 
 ### Why
 
@@ -302,11 +317,13 @@ we don't hold OpenAI's private key, deliberately. Two things ARE demoable:
   staged. Best shown live in a walkthrough; the access log is the durable
   record afterwards.
 
-### Files to touch when implementing
+### Files touched (implemented)
 
-`gateway/src/lib/registry.ts` (new) · `gateway/src/lib/verify.ts` (resolver) ·
-`gateway/schema.sql` + `src/lib/log.ts` (`trust_tier` column) ·
-`identity/index.html` §3 (describe the live tier, not just the concept).
+`gateway/src/lib/registry.ts` (new) · `gateway/src/lib/external-directory.ts`
+(new) · `gateway/src/lib/verify.ts` (resolver, + `maxAge` fix) ·
+`gateway/schema.sql` + `src/lib/log.ts` + `src/routes/price-list.ts`
+(`trust_tier` column, migrated live) · `identity/index.html` §3 (states what's
+confirmed — ChatGPT Work yes, consumer ChatGPT no).
 
 ## Later (not this plan)
 

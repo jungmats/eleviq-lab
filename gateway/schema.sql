@@ -17,7 +17,12 @@ CREATE TABLE IF NOT EXISTS access_log (
   keyid          TEXT,               -- signing key thumbprint, if any
   agent_name     TEXT,               -- verified agent name, if verified
   agent_operator TEXT,               -- verified operator, if verified
-  claimed_ua     TEXT                -- the unverified User-Agent / X-Demo-Agent-Claim
+  claimed_ua     TEXT,               -- the unverified User-Agent / X-Demo-Agent-Claim
+  trust_tier     TEXT                -- "own" | "registry:<origin>", if verified
 );
 
 CREATE INDEX IF NOT EXISTS access_log_ts ON access_log (ts DESC);
+
+-- Migration for a database created before trust_tier existed (2026-09-11):
+--   npx wrangler d1 execute eleviq-lab-log --local  --command "ALTER TABLE access_log ADD COLUMN trust_tier TEXT"
+--   npx wrangler d1 execute eleviq-lab-log --remote --command "ALTER TABLE access_log ADD COLUMN trust_tier TEXT"

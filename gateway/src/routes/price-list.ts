@@ -51,6 +51,7 @@ export async function handlePriceList(request: Request, env: Env, ctx: Execution
       agentName: verdict.agent.name,
       agentOperator: verdict.agent.operator,
       claimedUa,
+      trustTier: verdict.tier,
     });
     return json({
       ...FULL_LIST,
@@ -59,6 +60,7 @@ export async function handlePriceList(request: Request, env: Env, ctx: Execution
         operator: verdict.agent.operator,
         operator_domain: verdict.agent.domain,
         keyid: verdict.keyid,
+        trust_tier: verdict.tier,
         signed_at: verdict.created,
         expires: verdict.expires,
       },
