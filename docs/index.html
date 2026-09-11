@@ -68,13 +68,23 @@
             <p class="stack">Technologies: HTTP 402 · Cloudflare Pay Per Crawl · x402</p>
           </div>
 
-          <div class="stage is-soon">
-            <span class="badge soon">Coming</span>
+          <div class="stage">
+            <span class="badge live">Live</span>
             <h3>Measure</h3>
             <p class="stage-sub">What happened, and who sent the traffic?</p>
-            <p>An attribution dashboard: which agents came, what they did, and which human
-              visits an AI assistant actually referred back.</p>
-            <p class="stack">Technologies: Workers Analytics Engine · AI-referral attribution</p>
+            <p>Two dashboards: how the Identify demo above actually got used, and how real
+              eleviq.solutions traffic splits between humans, AI assistants, and crawlers.</p>
+
+            <p class="measure-link"><b>Demo 1's own access log</b> — every request to the
+              Identify demo above, claimed identity vs. what actually verified.<br>
+              <a class="button" href="measure/">Open dashboard →</a></p>
+
+            <p class="measure-link"><b>Real eleviq.solutions traffic</b> — human vs. AI
+              assistant vs. search/training crawler, on the live marketing site. Behind
+              login.<br>
+              <a class="button button-secondary" href="https://insights.eleviq.solutions/">Open dashboard →</a></p>
+
+            <p class="stack">Technologies: Cloudflare D1 · User-Agent classification · Cloudflare Access</p>
           </div>
 
         </div>

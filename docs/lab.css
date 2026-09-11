@@ -401,6 +401,30 @@ pre.wire .muted { color: var(--text-muted); }
 
 .stage.is-soon { opacity: 0.72; }
 
+/* Measure card: two dashboard links instead of one demo link */
+.measure-link {
+  margin: 0.6rem 0 0;
+  font-size: 0.85rem;
+}
+.measure-link b { color: var(--heading-color); }
+.measure-link .button,
+.measure-link .button-secondary {
+  margin-top: 0.4rem;
+  font-size: 0.8rem;
+  padding: 0.5rem 0.9rem;
+}
+/* button-secondary's own background is transparent — correct for an outline
+   button, but flush against this white/dark card it just looks like a
+   blank box next to the solid button above it. A subtle fill instead of
+   true transparency, scoped to this card only (not touching the reusable
+   button-secondary style elsewhere on the site). */
+.measure-link .button-secondary {
+  background-color: var(--code-bg);
+}
+.measure-link .button-secondary:hover {
+  background-color: var(--cyan);
+}
+
 /* --- Demo 4 (Measure) dashboard ---------------------------------- */
 
 /* Categorical palette for the chart — validated with the dataviz skill's

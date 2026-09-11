@@ -84,6 +84,17 @@ Access login redirect, not the dashboard content. Demo 4 (Measure) — both
 parts — is now fully built, deployed, and access-controlled where it needs
 to be.
 
+**Landing page (`docs/index.html`): Measure card flipped to "Live."** Was
+"Coming" throughout the build (see the earlier reverted attempt, noted
+above — "the dashboard belongs to demo 1"); now that both dashboards exist
+and are verified, the card carries two links instead of one demo link:
+`measure/` (Demo 1's own access log, primary button) and
+`https://insights.eleviq.solutions/` (real site traffic, secondary button,
+labeled "Behind login"), each with a one-line description of what it shows.
+New `.measure-link` styles in `lab.css`. Verified: `measure/` → `200`,
+`insights.eleviq.solutions` → `302` to the real Access login page — not
+just checking the markup renders.
+
 **Two real fixes from the user's first look at real data:**
 - **"80% unrecognized" turned out to be a labeling confusion, not real
   traffic composition.** What the user saw as `visitor: human` next to
@@ -110,6 +121,24 @@ to be.
   `insights.js`'s `setupPathJump()`) that navigates straight to
   `?path=<exact pathname>` — any logged page is reachable regardless of
   its traffic volume or recency.
+
+**Third fix, same session — real root cause, not cosmetic:** the user asked
+why `/openapi.json` (not a page on the site) showed up at all. Cause:
+`site-logger` only checked `content-type`, and GitHub Pages serves its 404
+page as `text/html` too — so every guessed/probed URL (bots and ordinary
+internet vulnerability scanners alike, hitting `/openapi.json`,
+`/.well-known/agent-card.json`, `/.git/config`, `/auth.md`, `/api/.env`, …)
+was logged identically to a real page view. Checked all 107 distinct logged
+paths' live status: **102 were 404s, only 5 were real pages** — of 219
+total rows, 147 were noise, 72 real. Fixed at the source
+(`site-logger/src/index.ts`: `response.ok` added to the logging condition,
+alongside the existing `content-type` check) and deployed — verified live
+with a paired test (a guessed-URL 404 → not logged; a real page hit in the
+same batch → logged normally, total rows +1 not +2). Historical noise
+cleaned from production D1 with the user running the confirmed DELETE
+themselves (blocked for me by the sandbox's destructive-write classifier
+even after the user's explicit go-ahead) — verified after: 73 rows left,
+all under the 5 real paths, zero 404-noise remaining.
 
 # ElevIQ Lab — Demo 1 (Identify) + Demo 4 part A (Measure)
 
