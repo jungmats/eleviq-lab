@@ -7,14 +7,22 @@ verified end-to-end in a real browser and via all four external test paths.
 Since initial deploy:
 - **Identity honesty fix:** trust store collapsed to one "ElevIQ Lab demo
   agent" key (was 3 keys impersonating OpenAI/Anthropic/Perplexity). The
-  console's dropdown is now purely the *claimed* identity; signing always uses
-  the one demo key, so "Claimed" and "Verified as" can visibly differ. Added
-  §3 "What makes a real agent's key trustworthy" (secret key + vetted registry).
+  console's claimed-identity control is now a free-text input (default
+  `ElevIQ-Demo-Bot/1.0`) — edit it to anything; signing always uses the one
+  demo key, so "Claimed" and "Verified as" can visibly differ. Added §3 "What
+  makes a real agent's key trustworthy" (secret key + vetted registry).
 - **Access log:** D1 table `access_log` (`gateway/schema.sql`), one row per
   request to `/api/identity/price-list` with outcome + identity. Foundation
   for Demo 4; no dashboard yet, inspect via `wrangler d1 execute`.
+- **`/api/debug/cf`** — diagnostic endpoint exposing Cloudflare's own heuristic
+  edge signals (`verifiedBotCategory` etc.) for the caller's own request.
+  Confirmed real signal only for "ChatGPT Work"; confirmed the presence of a
+  genuine, matching Web Bot Auth signature from it too (see Tier 2 below).
+  Not used for any trust decision.
+- **Tier 2 design written** (below) — real operator trust (`chatgpt.com`),
+  confirmed feasible with a live example. **Not implemented yet.**
 
-Next: Demo 2 — Decide.
+Next: implement Tier 2, then Demo 2 — Decide.
 
 ## Context
 
@@ -199,6 +207,106 @@ Local — `npm install && npm run build`, then in two shells `npm run dev:gatewa
 
 Deployed: repeat against `https://eleviq-lab-gateway.gateway-worker.workers.dev` and
 `https://lab.eleviq.solutions`.
+
+## Tier 2 — real operator trust (design, not yet built)
+
+### Why
+
+Trust today is a single self-issued demo key — real, but self-vouched (see "What
+makes a real agent's key trustworthy" in identity/index.html §3). The value of
+Demo 1 is abstract as long as it can only ever verify itself. Tier 2 makes a
+**genuinely third-party-signed request verify for real**, starting with OpenAI.
+
+### What we confirmed first (2026-09-11), before designing this
+
+- `https://chatgpt.com/.well-known/http-message-signatures-directory` is **live**:
+  `{"keys":[{"crv":"Ed25519","kty":"OKP","x":"7F_3jDlxaquwh291MiACkcS3Opq88NksyHiakzS-Y1g",
+  "kid":"otMqcjr17mGyruktGvJU8oojQTSMHlVm7uO-lrcqbdg","use":"sig","nbf":...,"exp":...}],
+  "signature_agent":"https://chatgpt.com","purpose":"ai"}`.
+  `operator.openai.com`, `anthropic.com`, `claude.ai`, `perplexity.ai` do **not**
+  (yet) publish one — Web Bot Auth is brand new (W3C spec finalized May 2026) and
+  scoped per *product* (ChatGPT Atlas/Operator, Claude in Chrome, Perplexity
+  Browser), not per company domain, so the others likely exist at a different,
+  unguessed host.
+- **Captured a real example**, "ChatGPT Work" hitting `/api/debug/cf`:
+  `Signature-Agent: "https://chatgpt.com"`,
+  `Signature-Input: sig1=("@authority" "@method" "signature-agent");created=…;
+  keyid="otMqcjr17mGyruktGvJU8oojQTSMHlVm7uO-lrcqbdg";alg="ed25519";expires=…;
+  nonce="…";tag="web-bot-auth"`. **The keyid matches the live directory exactly.**
+  Real, live, matching signature — this is not hypothetical.
+- Registries exist (Cloudflare's canonical one:
+  `https://assets.radar.cloudflare.com/bots/signature-agent-registry.txt`, a
+  plain text list of directory URLs) but Cloudflare's own file is behind a JS
+  challenge for non-browser fetches — not reliably fetchable from a Worker.
+- Rejected the heuristic tier (`request.cf.verifiedBotCategory`) as a trust
+  source — real but non-cryptographic, no non-repudiation, silently degrades.
+  Kept only as a passive log field (see `/api/debug/cf`, already built).
+
+### Decision: a small hardcoded allow-list, not a live registry fetch
+
+Per discussion — start with one hardcoded entry (`chatgpt.com`) rather than
+depending on Cloudflare's (currently unreachable) registry file. Extensible:
+adding Anthropic/Perplexity later is one line, once they publish a directory.
+
+```ts
+// gateway/src/lib/registry.ts
+interface RegistryEntry { origin: string; label: string; operator: string }
+
+export const REGISTRY: RegistryEntry[] = [
+  { origin: "https://chatgpt.com", label: "ChatGPT", operator: "OpenAI" },
+];
+```
+
+### Verification flow (extends `gateway/src/lib/verify.ts`)
+
+The resolver `web-bot-auth`'s `verify()` calls today only checks the local Tier
+1 store. Extend it:
+
+1. `candidate.keyid` in the local trust store (Tier 1, our own key)? → return
+   that verifier, no network call. **Unchanged, existing behaviour.**
+2. Else, is `candidate.signatureAgent.uri` an **exact string match** for an
+   entry in `REGISTRY`? If not → reject (`unknown-key`), same as today.
+   *(Exact match against our own fixed list — never fetch a URL taken from the
+   request. This is what keeps step 3 safe from SSRF.)*
+3. Fetch `${origin}/.well-known/http-message-signatures-directory` (short
+   timeout via `AbortSignal.timeout(…)`, cap response size), through the
+   Workers **Cache API** keyed by that URL (TTL ~10 min — don't fetch this on
+   every request to a warm operator).
+4. Find a JWK in the response matching `candidate.keyid`. Check its own
+   `nbf`/`exp` (the *key's* validity window — separate from the signature's
+   own `created`/`expires`, which `verify()` already checks).
+5. Found + valid → `verifierFromJWK(jwk)`, `verify()` proceeds as normal
+   (still actually checks the Ed25519 signature — step 2/3 only establish
+   *which* key is allowed to be checked, they are not the check itself).
+6. Any failure in 3–5 (fetch error, non-200, no matching key, expired key)
+   → **fail closed**, reject as `unknown-key`. Never fail-open on a network hiccup.
+
+### Logging
+
+Add a `trust_tier` column to `access_log` (`"own"` | `"registry:<origin>"`) so
+the log — and eventually the Demo 4 dashboard — can show real third-party
+verifications distinctly from self-key ones.
+
+### What's actually demoable
+
+The console/reference script **cannot manufacture a passing Tier 2 request** —
+we don't hold OpenAI's private key, deliberately. Two things ARE demoable:
+
+- **The rejection case**, on demand, right now: sign a request claiming
+  `Signature-Agent: "https://chatgpt.com"` with our OWN key (or no key) →
+  gateway looks it up in the real live chatgpt.com directory → no match →
+  correctly rejected. Proves the gateway isn't fooled by merely *claiming* to
+  be a registered operator.
+- **The acceptance case, live, on demand** — ask ChatGPT Work (confirmed
+  capable, see above) to fetch the protected resource. A real pass, not
+  staged. Best shown live in a walkthrough; the access log is the durable
+  record afterwards.
+
+### Files to touch when implementing
+
+`gateway/src/lib/registry.ts` (new) · `gateway/src/lib/verify.ts` (resolver) ·
+`gateway/schema.sql` + `src/lib/log.ts` (`trust_tier` column) ·
+`identity/index.html` §3 (describe the live tier, not just the concept).
 
 ## Later (not this plan)
 

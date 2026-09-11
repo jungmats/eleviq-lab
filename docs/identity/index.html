@@ -83,16 +83,12 @@
             </div>
 
             <div class="control-row">
-              <span class="label">2 — Which agent is it claiming to be?</span>
-              <select id="ua">
-                <option value="ChatGPT-User/1.0 (+https://openai.com/bot)">ChatGPT-User (OpenAI)</option>
-                <option value="ClaudeBot/1.0 (+https://anthropic.com/claudebot)">ClaudeBot (Anthropic)</option>
-                <option value="PerplexityBot/1.0 (+https://perplexity.ai/bot)">PerplexityBot (Perplexity)</option>
-              </select>
-              <p class="hint">The claimed identity — just a string, never what's actually
-                signed. Try <b>Valid signature</b> with each option: the server always
-                verifies the same key ("ElevIQ Lab demo agent") no matter which agent it
-                claims to be — the claim and the verified identity are shown separately in
+              <span class="label">2 — What identity does it claim?</span>
+              <input type="text" id="ua" value="ElevIQ-Demo-Bot/1.0 (+https://lab.eleviq.solutions)">
+              <p class="hint">Just a string — edit it to anything you like and send again.
+                It is never what's actually signed. With <b>Valid signature</b> the server
+                always verifies the same key ("ElevIQ Lab demo agent") no matter what you
+                typed here — the claim and the verified identity are shown separately in
                 the result. (Browsers can't set <code>User-Agent</code> from a script, so the
                 console sends the claim in <code>X-Demo-Agent-Claim</code>; <code>curl</code>
                 would use <code>-H&nbsp;'User-Agent: …'</code>.)</p>

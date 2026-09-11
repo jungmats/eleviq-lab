@@ -11,6 +11,8 @@
  *   GET  /.well-known/http-message-signatures-directory  trusted public keys
  *   GET  /api/identity/price-list                       the protected resource
  *   POST /api/sign                                      demo test-aid signer
+ *   GET  /api/debug/cf                                  Cloudflare's own (heuristic, not
+ *                                                        cryptographic) edge signals for your request
  *
  * Later: policy (Decide), HTTP 402 (Charge), analytics (Measure).
  *
@@ -20,6 +22,7 @@
 import { handleDirectory } from "./routes/directory";
 import { handlePriceList } from "./routes/price-list";
 import { handleSign } from "./routes/sign";
+import { handleDebugCf } from "./routes/debug";
 import { json, preflight } from "./lib/http";
 import type { Env } from "./lib/log";
 
@@ -55,12 +58,20 @@ async function route(request: Request, path: string, url: URL, env: Env, ctx: Ex
   if (path === "/api/sign" && request.method === "POST") {
     return handleSign(request);
   }
+  if (path === "/api/debug/cf" && request.method === "GET") {
+    return handleDebugCf(request);
+  }
 
   return json(
     {
       error: "not_found",
       hint: "GET / describes this gateway.",
-      endpoints: ["/.well-known/http-message-signatures-directory", "/api/identity/price-list", "/api/sign"],
+      endpoints: [
+        "/.well-known/http-message-signatures-directory",
+        "/api/identity/price-list",
+        "/api/sign",
+        "/api/debug/cf",
+      ],
     },
     404,
   );
@@ -77,6 +88,7 @@ function info(url: URL) {
       directory: `${url.origin}/.well-known/http-message-signatures-directory`,
       protected_resource: `${url.origin}/api/identity/price-list — GET; 200 for a verified agent, else 401 + how-to-authenticate`,
       test_helper: `${url.origin}/api/sign — POST {"url": "…/api/identity/price-list"}; signs with a demo key so you can try the verified path with curl`,
+      debug_cf: `${url.origin}/api/debug/cf — GET; Cloudflare's own heuristic edge signals for your request (not cryptographic, not used for any decision here)`,
     },
     reference: `${SITE}/reference/`,
   });
