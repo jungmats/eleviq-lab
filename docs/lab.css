@@ -401,6 +401,132 @@ pre.wire .muted { color: var(--text-muted); }
 
 .stage.is-soon { opacity: 0.72; }
 
+/* --- Demo 4 (Measure) dashboard ---------------------------------- */
+
+/* Categorical palette for the chart — validated with the dataviz skill's
+   validator (fixed order, adjacent-pair CVD-safe in both modes). Not reused
+   from --ok/--bad/--warn: that trio fails as an adjacent categorical set. */
+:root {
+  --cat-own: #2a78d6;
+  --cat-registry: #eb6834;
+  --cat-unsigned: #1baf7a;
+  --cat-other: #eda100;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --cat-own: #3987e5;
+    --cat-registry: #d95926;
+    --cat-unsigned: #199e70;
+    --cat-other: #c98500;
+  }
+}
+:root[data-theme="dark"] {
+  --cat-own: #3987e5;
+  --cat-registry: #d95926;
+  --cat-unsigned: #199e70;
+  --cat-other: #c98500;
+}
+
+.stat-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.stat-tile {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.9rem 1rem;
+  background: var(--code-bg);
+  display: flex;
+  flex-direction: column;
+}
+
+.stat-n {
+  font-family: var(--heading-font);
+  font-size: 1.7rem;
+  font-weight: 800;
+  color: var(--heading-color);
+}
+
+.stat-label {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.chart-wrap {
+  margin-top: 1.2rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem 1.1rem 0.5rem;
+}
+
+.chart-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.chart-grid {
+  stroke: var(--border);
+  stroke-width: 1;
+}
+
+.chart-axis-label {
+  font-size: 9px;
+  fill: var(--text-muted);
+  font-family: var(--mono);
+}
+
+.chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.9rem;
+  margin: 0.6rem 0 0.8rem;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.legend-item { display: inline-flex; align-items: center; gap: 0.4rem; }
+
+.legend-swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+}
+
+.log-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.log-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+
+.log-table th,
+.log-table td {
+  padding: 0.5rem 0.7rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.log-table th {
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  background: var(--code-bg);
+}
+
+.log-table tbody tr:last-child td { border-bottom: 0; }
+
 /* --- responsive ------------------------------------------------- */
 
 @media (max-width: 680px) {

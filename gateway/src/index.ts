@@ -14,7 +14,10 @@
  *   GET  /api/debug/cf                                  Cloudflare's own (heuristic, not
  *                                                        cryptographic) edge signals for your request
  *
- * Later: policy (Decide), HTTP 402 (Charge), analytics (Measure).
+ * Demo 4 — Measure (Part A, agent access only; Part B lives on eleviq.solutions):
+ *   GET  /api/log                                       access_log summary + recent rows
+ *
+ * Later: policy (Decide), HTTP 402 (Charge).
  *
  * The demo site that explains and drives this lives separately, on GitHub Pages
  * at https://lab.eleviq.solutions
@@ -23,6 +26,7 @@ import { handleDirectory } from "./routes/directory";
 import { handlePriceList } from "./routes/price-list";
 import { handleSign } from "./routes/sign";
 import { handleDebugCf } from "./routes/debug";
+import { handleLog } from "./routes/log";
 import { json, preflight } from "./lib/http";
 import type { Env } from "./lib/env";
 
@@ -61,6 +65,9 @@ async function route(request: Request, path: string, url: URL, env: Env, ctx: Ex
   if (path === "/api/debug/cf" && request.method === "GET") {
     return handleDebugCf(request);
   }
+  if (path === "/api/log" && request.method === "GET") {
+    return handleLog(env);
+  }
 
   return json(
     {
@@ -71,6 +78,7 @@ async function route(request: Request, path: string, url: URL, env: Env, ctx: Ex
         "/api/identity/price-list",
         "/api/sign",
         "/api/debug/cf",
+        "/api/log",
       ],
     },
     404,
@@ -89,6 +97,7 @@ function info(url: URL) {
       protected_resource: `${url.origin}/api/identity/price-list — GET; 200 for a verified agent, else 401 + how-to-authenticate`,
       test_helper: `${url.origin}/api/sign — POST {"url": "…/api/identity/price-list"}; signs with a demo key so you can try the verified path with curl`,
       debug_cf: `${url.origin}/api/debug/cf — GET; Cloudflare's own heuristic edge signals for your request (not cryptographic, not used for any decision here)`,
+      access_log: `${url.origin}/api/log — GET; summary + last 100 rows of every request to /api/identity/price-list`,
     },
     reference: `${SITE}/reference/`,
   });

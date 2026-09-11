@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="gateway" content="https://eleviq-lab-gateway.gateway-worker.workers.dev">
+  <title>Agent Access Dashboard — ElevIQ Lab</title>
+  <link rel="icon" href="../assets/eleviq_icon.png">
+  <link rel="stylesheet" href="../styles.css">
+  <link rel="stylesheet" href="../lab.css">
+</head>
+<body>
+
+  <header>
+    <a href="https://eleviq.solutions"><img src="../assets/eleviq_logo_v1.6.png" alt="ElevIQ Logo"></a>
+    <p class="brand-line">ElevIQ Lab</p>
+    <p><b>Agent Access Dashboard</b></p>
+    <p class="lab-crumbs"><a href="../">Lab home</a> &nbsp;·&nbsp; Demo 4, part A &nbsp;·&nbsp; Measure</p>
+  </header>
+
+  <div class="container wide">
+    <main>
+
+      <section class="section step">
+        <h2><span class="step-n">1</span> The problem</h2>
+        <p>Most sites have no visibility into agent traffic at all — no log, no
+          attribution, nothing. <a href="../identity/">Demo 1</a> already produces one,
+          automatically, every time anything hits the protected resource: a row per
+          request, with the outcome and — when verified — the identity.</p>
+        <p>This page reads that log.</p>
+      </section>
+
+      <section class="section step">
+        <h2><span class="step-n">2</span> The dashboard</h2>
+
+        <div class="stat-tiles" id="stats">
+          <div class="stat-tile"><span class="stat-n" id="stat-total">—</span><span class="stat-label">requests</span></div>
+          <div class="stat-tile"><span class="stat-n" id="stat-verified">—</span><span class="stat-label">verified</span></div>
+          <div class="stat-tile"><span class="stat-n" id="stat-refused">—</span><span class="stat-label">refused</span></div>
+          <div class="stat-tile"><span class="stat-n" id="stat-registry">—</span><span class="stat-label">via chatgpt.com</span></div>
+        </div>
+
+        <button class="send-btn" id="refresh">Refresh</button>
+
+        <div class="chart-wrap" id="chart-wrap">
+          <p class="pane-title">Requests per day, by outcome</p>
+          <div id="chart"></div>
+          <div class="chart-legend" id="legend"></div>
+        </div>
+
+        <p class="pane-title" style="margin-top:1.5rem">Recent requests (newest first, last <span id="row-limit">100</span>)</p>
+        <div class="log-table-wrap">
+          <table class="log-table" id="log-table">
+            <thead>
+              <tr><th>Time</th><th>Outcome</th><th>Claimed</th><th>Verified as</th><th>Trust tier</th></tr>
+            </thead>
+            <tbody id="log-rows"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="section step">
+        <h2><span class="step-n">3</span> Where this data comes from</h2>
+        <p>Every request to <code>/api/identity/price-list</code> is written to a
+          Cloudflare D1 table (<code>access_log</code>) by the gateway itself — see
+          <code>gateway/schema.sql</code>. This page just reads it, via a public
+          endpoint (<code>GET /api/log</code>) that returns a summary and the last 100
+          rows. Small, demo-scale dataset; the same mechanism is what you'd build for a
+          customer at real volume.</p>
+        <p>This endpoint is deliberately public, like the rest of the lab — nothing in
+          it is sensitive (it's outcomes and identity claims from a public demo API).
+          A real customer deployment would put a path like this behind
+          <b>Cloudflare Access</b> — identity-aware auth at the edge — rather than
+          building authentication into the dashboard itself. That needs the gateway on
+          a domain we control, which lands once the <code>eleviq.solutions</code>
+          migration this lab is also using is complete; not done here yet.</p>
+        <p>Try it: open <a href="../identity/">Demo 1</a> in another tab, send a
+          request, come back here and hit Refresh.</p>
+      </section>
+
+    </main>
+  </div>
+
+  <footer>
+    &copy; 2025–2026 ElevIQ. &nbsp;·&nbsp; <a href="https://eleviq.solutions">eleviq.solutions</a>
+    &nbsp;·&nbsp; <a href="../">ElevIQ Lab</a>
+  </footer>
+
+  <script type="module" src="../assets/measure.js"></script>
+</body>
+</html>

@@ -1,8 +1,31 @@
-# ElevIQ Lab — Demo 1: Agent Identity (Web Bot Auth)
+# ElevIQ Lab — Demo 1 (Identify) + Demo 4 part A (Measure)
 
-**Status (2026-09-11): deployed and live.** `lab.eleviq.solutions` (GitHub
-Pages) + `eleviq-lab-gateway.gateway-worker.workers.dev` (Cloudflare Worker),
-verified end-to-end in a real browser and via all four external test paths.
+**Status (2026-09-11): Demo 1 deployed and live.** `lab.eleviq.solutions`
+(GitHub Pages) + `eleviq-lab-gateway.gateway-worker.workers.dev` (Cloudflare
+Worker), verified end-to-end in a real browser and via all four external test
+paths.
+
+**Demo 4, Part A (agent access dashboard): built, deployed, pending review.**
+`gateway/src/routes/log.ts` (`GET /api/log` — summary + day-bucketed outcome
+counts + last 100 rows, from `access_log`) + `docs/measure/` (stat tiles,
+stacked bar chart, recent-requests table, manual Refresh). Landing page's
+Measure card flipped to "Live (part A)". Verified against the real remote D1
+data (30 rows, including the ChatGPT Work hit) — chart, stats, and table all
+render correctly in a real browser; dark-mode CSS follows the same tested
+pattern as the rest of the site (not independently screenshotted, the headless
+flag didn't cooperate). **Part A is public/unprotected on purpose** — no PII
+in the data; a real deployment would gate a path like this with Cloudflare
+Access once the gateway has a custom domain, not app-level auth (see
+`measure/index.html` §3). Chart palette validated with the dataviz skill's
+`validate_palette.js` — the site's existing `--ok`/`--bad`/`--warn` trio fails
+as an adjacent categorical set, so the chart uses its own 4-color palette
+(`--cat-own/registry/unsigned/other` in `lab.css`) from the skill's default
+ordering instead.
+
+**Demo 4, Part B (AI-referral / agent-vs-human attribution on
+`eleviq.solutions` itself): blocked on the DNS migration**, in progress —
+nameservers switched at Porkbun to Cloudflare's, not yet propagated. Not
+started otherwise.
 
 Since initial deploy:
 - **Identity honesty fix:** trust store collapsed to one "ElevIQ Lab demo
