@@ -46,7 +46,13 @@ export default {
 
     try {
       const contentType = response.headers.get("content-type") ?? "";
-      if (contentType.includes("text/html")) {
+      // response.ok excludes 404s and other error responses — GitHub Pages
+      // serves its 404 page as text/html too, so without this check every
+      // guessed/probed URL (bots and vulnerability scanners alike guessing
+      // at /openapi.json, /.well-known/agent-card.json, /.git/config, …)
+      // got logged as if it were a real page view of a page that doesn't
+      // exist. Confirmed: none of those paths are actually hosted here.
+      if (contentType.includes("text/html") && response.ok) {
         const cf = request.cf as { country?: string; verifiedBotCategory?: string } | undefined;
         const visitor = classifyVisitor(request.headers.get("User-Agent"));
         logPageView(env, ctx, {
