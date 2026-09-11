@@ -22,11 +22,10 @@ binding = "DB"
 database_name = "eleviq-site-log"
 database_id = "68dedff2-12ad-4dd7-b19c-d5c81b577a16"
 
-# --- the actual go-live step: uncomment only when ready ---------------
-# [[routes]]
-# pattern = "eleviq.solutions/*"
-# zone_name = "eleviq.solutions"
-#
-# [[routes]]
-# pattern = "www.eleviq.solutions/*"
-# zone_name = "eleviq.solutions"
+[[routes]]
+pattern = "eleviq.solutions/*"
+zone_name = "eleviq.solutions"
+
+[[routes]]
+pattern = "www.eleviq.solutions/*"
+zone_name = "eleviq.solutions"
