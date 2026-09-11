@@ -1,0 +1,32 @@
+# eleviq.solutions site logger — Cloudflare Worker.
+#
+#   npx wrangler dev    --config site-logger/wrangler.toml   local: http://localhost:8788
+#   npx wrangler deploy --config site-logger/wrangler.toml   -> eleviq-site-logger.<subdomain>.workers.dev
+#
+# NOT yet bound to eleviq.solutions traffic — the [[routes]] block below is
+# commented out on purpose. Test thoroughly via the workers.dev URL first
+# (see site-logger/README.md). Uncommenting routes + deploying is the actual
+# go-live step, and it touches the live site immediately — do that only
+# after explicit confirmation, per PLAN.md.
+
+name = "eleviq-site-logger"
+main = "src/index.ts"
+compatibility_date = "2026-09-01"
+workers_dev = true
+
+[observability]
+enabled = true
+
+[[d1_databases]]
+binding = "DB"
+database_name = "eleviq-site-log"
+database_id = "68dedff2-12ad-4dd7-b19c-d5c81b577a16"
+
+# --- the actual go-live step: uncomment only when ready ---------------
+# [[routes]]
+# pattern = "eleviq.solutions/*"
+# zone_name = "eleviq.solutions"
+#
+# [[routes]]
+# pattern = "www.eleviq.solutions/*"
+# zone_name = "eleviq.solutions"

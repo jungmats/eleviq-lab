@@ -1,3 +1,32 @@
+# ElevIQ Lab — Demo 1 (Identify) + Demo 4 (Measure: part A lab, part B site)
+
+**eleviq.solutions DNS migration: done.** Nameservers on Cloudflare, mail
+(MX/SPF/both DKIM selectors/DMARC) verified intact, `intake` CNAME gap found
+and fixed (was silently caught by the `*` wildcard, resolving to GitHub Pages
+instead of Vercel — fixed with an explicit record). Apex + `www` now
+proxied (orange-cloud); `lab` and `compliance` deliberately left DNS-only,
+confirmed unaffected.
+
+**Demo 4, Part B (`site-logger/`, eleviq.solutions traffic): built and
+tested, NOT live.** A transparent passthrough Worker — fetches the real
+GitHub Pages origin via `cf.resolveOverride` (avoids looping back through
+its own route) and returns it byte-for-byte unchanged; the only side effect
+is an async, fire-and-forget log entry for HTML responses (path, human vs.
+which agent by User-Agent signature, AI-assistant referral via `Referer`,
+Cloudflare's own bot-category signal, country — no cookies, no visitor id,
+no raw IP). Separate D1 database (`eleviq-site-log`), separate from the
+lab's. Tested via the workers.dev URL with a temporary Host-rewrite header
+(removed before this note) simulating a bound route: passthrough verified
+byte-identical to the real site (the one diff, Cloudflare's own rotating
+email-obfuscation cipher, isn't from this Worker); GPTBot/ClaudeBot UAs
+correctly classified; a human UA with a `chatgpt.com` Referer correctly
+logged as `visitor: human, referrer_agent: ChatGPT` — the actual
+AI-referral signal. All confirmed via the real remote D1.
+**`wrangler.toml`'s `[[routes]]` block is commented out — going live is
+literally uncommenting it and redeploying, deliberately gated on explicit
+confirmation before doing that (this Worker sits in the live site's request
+path once bound).**
+
 # ElevIQ Lab — Demo 1 (Identify) + Demo 4 part A (Measure)
 
 **Status (2026-09-11): Demo 1 deployed and live.** `lab.eleviq.solutions`
