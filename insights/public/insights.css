@@ -36,6 +36,41 @@
   overflow-x: auto;
 }
 
+.path-jump {
+  margin: 0.8rem 0 1.1rem;
+}
+
+.path-jump .label {
+  display: block;
+  font-weight: 700;
+  font-size: 0.82rem;
+  color: var(--heading-color);
+  margin-bottom: 0.35rem;
+}
+
+.path-jump-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.path-jump-row input {
+  flex: 1;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--grey2);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.9rem;
+}
+
+.path-jump-row .send-btn {
+  margin-top: 0;
+  flex-shrink: 0;
+}
+
 #top-pages-wrap {
   margin-top: 1.2rem;
 }

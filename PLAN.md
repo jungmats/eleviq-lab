@@ -84,6 +84,33 @@ Access login redirect, not the dashboard content. Demo 4 (Measure) — both
 parts — is now fully built, deployed, and access-controlled where it needs
 to be.
 
+**Two real fixes from the user's first look at real data:**
+- **"80% unrecognized" turned out to be a labeling confusion, not real
+  traffic composition.** What the user saw as `visitor: human` next to
+  `unrecognized` was actually `human` next to **`uncategorized`** — the
+  155 pre-migration rows (logged before `visitor_category` existed),
+  which read too similarly to `unrecognized` at a glance. Since those
+  rows already stored a deterministic `visitor` name (`human`, `GPTBot`,
+  `ClaudeBot`), backfilled `visitor_category` from it directly —
+  `UPDATE page_views SET visitor_category = CASE visitor WHEN 'human'
+  THEN 'human' WHEN 'GPTBot' THEN 'training' WHEN 'ClaudeBot' THEN
+  'training' ELSE visitor_category END WHERE visitor_category IS NULL`
+  — run against production after explicit confirmation (`changes: 155`,
+  matching exactly). No "uncategorized" bucket left; real breakdown is
+  `human: 177, unrecognized: 5, training: 4, search: 2, agent: 2` (out
+  of 190) — unrecognized is ~2.6%, not 80%.
+- **A page with only 1 visit (`/services/ai-agent-readiness.html`) wasn't
+  showing up anywhere** — real data (confirmed logged, 1 row), just
+  outside both the top-15-by-traffic table and the last-100-raw-events
+  window once ~100 distinct paths accumulated, many from ordinary
+  internet vulnerability-scanner background noise
+  (`/wp-includes/…`, `/.env`, `/.git/config`, `/auth.md` — normal for any
+  newly-proxied domain, not a sign of compromise). Fixed with a "jump to
+  a page" input on the Overview (`insights/public/index.html` +
+  `insights.js`'s `setupPathJump()`) that navigates straight to
+  `?path=<exact pathname>` — any logged page is reachable regardless of
+  its traffic volume or recency.
+
 # ElevIQ Lab — Demo 1 (Identify) + Demo 4 part A (Measure)
 
 **Status (2026-09-11): Demo 1 deployed and live.** `lab.eleviq.solutions`

@@ -33,6 +33,21 @@ function fmtTime(iso) {
   });
 }
 
+function setupPathJump() {
+  const input = $("path-input");
+  if (PATH) input.value = PATH;
+  $("path-jump").addEventListener("submit", (ev) => {
+    ev.preventDefault();
+    let value = input.value.trim();
+    if (!value) {
+      location.href = "./";
+      return;
+    }
+    if (!value.startsWith("/")) value = "/" + value;
+    location.href = `?path=${encodeURIComponent(value)}`;
+  });
+}
+
 function setupModeChrome() {
   const crumbs = $("crumbs");
   if (PATH) {
@@ -172,5 +187,6 @@ async function load() {
 }
 
 setupModeChrome();
+setupPathJump();
 $("refresh").addEventListener("click", load);
 load();

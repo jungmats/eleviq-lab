@@ -27,6 +27,14 @@
         <p class="hint" id="scope-hint"></p>
         <p class="hint" id="uncategorized-hint" hidden><b>Uncategorized</b> rows predate the category upgrade (site-logger started writing it on 2026-09-11) — not a fifth real category, just data logged before that field existed.</p>
 
+        <form id="path-jump" class="path-jump">
+          <label for="path-input" class="label">Jump to a page (exact path — not everything makes the top-15 or the last 100 raw events)</label>
+          <div class="path-jump-row">
+            <input type="text" id="path-input" placeholder="/services/ai-agent-readiness.html">
+            <button type="submit" class="send-btn">Go</button>
+          </div>
+        </form>
+
         <div class="table-scroll">
           <table class="stat-table" id="stats">
             <thead>
