@@ -51,6 +51,7 @@ function renderTable(entries) {
     </tr>`;
   });
   $("log-rows").innerHTML = rows.join("") || `<tr><td colspan="5">No requests logged yet.</td></tr>`;
+  $("log-count").textContent = entries.length;
 }
 
 function esc(s) {
@@ -100,7 +101,7 @@ function renderChart(daily) {
       const segH = Math.max(0, (n / niceMax) * plotH - gap);
       yCursor -= segH + gap;
       return `<rect x="${x}" y="${yCursor}" width="${barW}" height="${segH}"
-                fill="var(${cat.cssVar})" rx="2">
+                style="fill:var(${cat.cssVar})" rx="2">
                 <title>${d.day} · ${cat.label}: ${n}</title>
               </rect>`;
     }).join("");
