@@ -1,0 +1,69 @@
+/* insights.eleviq.solutions — page-specific styles, layered on top of the
+   shared styles.css + lab.css (copied in from the lab's docs/, kept in sync
+   by hand — this Worker doesn't share a build with the GitHub Pages site). */
+
+/* Categorical palette for the 5 visitor categories (human / agent / search /
+   training / unrecognized). Validated with the dataviz skill's validator —
+   the first 5 slots of the skill's fixed 8-hue order, unmodified, so this
+   stays CVD-safe in the same adjacent-pairlist sense as /measure/'s own
+   chart. Named --cat2-* (not --cat-*) so this file never collides with
+   lab.css's own 4-color palette used on /measure/. */
+:root {
+  --cat2-human: #2a78d6;
+  --cat2-agent: #eb6834;
+  --cat2-search: #1baf7a;
+  --cat2-training: #eda100;
+  --cat2-unrecognized: #e87ba4;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --cat2-human: #3987e5;
+    --cat2-agent: #d95926;
+    --cat2-search: #199e70;
+    --cat2-training: #c98500;
+    --cat2-unrecognized: #d55181;
+  }
+}
+:root[data-theme="dark"] {
+  --cat2-human: #3987e5;
+  --cat2-agent: #d95926;
+  --cat2-search: #199e70;
+  --cat2-training: #c98500;
+  --cat2-unrecognized: #d55181;
+}
+
+.table-scroll {
+  overflow-x: auto;
+}
+
+#top-pages-wrap {
+  margin-top: 1.2rem;
+}
+
+#top-pages-table td a {
+  color: var(--heading-color);
+}
+
+.cat-defs {
+  margin: 0.6rem 0 1rem;
+  font-size: 0.88rem;
+}
+
+.cat-defs dt {
+  font-weight: 700;
+  color: var(--heading-color);
+  margin-top: 0.6rem;
+}
+
+.cat-defs dd {
+  margin: 0.15rem 0 0;
+  color: var(--text-muted);
+}
+
+#scope-hint {
+  margin-top: -0.2rem;
+}
+
+#scope-hint a {
+  color: var(--cyan);
+}

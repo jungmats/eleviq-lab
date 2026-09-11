@@ -7,25 +7,82 @@ instead of Vercel — fixed with an explicit record). Apex + `www` now
 proxied (orange-cloud); `lab` and `compliance` deliberately left DNS-only,
 confirmed unaffected.
 
-**Demo 4, Part B (`site-logger/`, eleviq.solutions traffic): built and
-tested, NOT live.** A transparent passthrough Worker — fetches the real
-GitHub Pages origin via `cf.resolveOverride` (avoids looping back through
-its own route) and returns it byte-for-byte unchanged; the only side effect
-is an async, fire-and-forget log entry for HTML responses (path, human vs.
-which agent by User-Agent signature, AI-assistant referral via `Referer`,
-Cloudflare's own bot-category signal, country — no cookies, no visitor id,
-no raw IP). Separate D1 database (`eleviq-site-log`), separate from the
-lab's. Tested via the workers.dev URL with a temporary Host-rewrite header
-(removed before this note) simulating a bound route: passthrough verified
-byte-identical to the real site (the one diff, Cloudflare's own rotating
-email-obfuscation cipher, isn't from this Worker); GPTBot/ClaudeBot UAs
-correctly classified; a human UA with a `chatgpt.com` Referer correctly
-logged as `visitor: human, referrer_agent: ChatGPT` — the actual
-AI-referral signal. All confirmed via the real remote D1.
-**`wrangler.toml`'s `[[routes]]` block is commented out — going live is
-literally uncommenting it and redeploying, deliberately gated on explicit
-confirmation before doing that (this Worker sits in the live site's request
-path once bound).**
+**Demo 4, Part B (`site-logger/`, eleviq.solutions traffic): built, tested,
+and LIVE.** A transparent passthrough Worker — fetches the real GitHub
+Pages origin via `cf.resolveOverride` (avoids looping back through its own
+route) and returns it byte-for-byte unchanged; the only side effect is an
+async, fire-and-forget log entry for HTML responses (path, visitor name +
+category, AI-assistant referral via `Referer`, Cloudflare's own bot-category
+signal, country — no cookies, no visitor id, no raw IP). Separate D1
+database (`eleviq-site-log`), separate from the lab's. `wrangler.toml`'s
+`[[routes]]` block is now live (`eleviq.solutions/*`, `www.eleviq.solutions/*`),
+bound after explicit confirmation.
+
+**Visitor classification rewritten around Cloudflare's own AI Crawl Control
+taxonomy** (`lib/classify.ts`) — five categories instead of a flat bot/human
+split, because the thing the user actually wants to see is attribution: did
+a *person* read this page (`human`), did a person ask an AI assistant to
+fetch it live right now (`agent` — ChatGPT-User, Claude-User, Perplexity-User,
+MistralAI-User), or is it background crawling that isn't tied to any one
+person (`search` — Googlebot, Bingbot, OAI-SearchBot, …; `training` — GPTBot,
+ClaudeBot, CCBot, …)? A fifth bucket, `unrecognized`, catches anything that
+doesn't match a known signature and doesn't look like a real browser UA
+either (no `Mozilla/5.0` + engine token) — this is where home-grown /
+unlabelled agents land, on the honest caveat that a UA that deliberately
+spoofs a real browser is fundamentally undetectable by this method. All five
+categories are logged for now, deliberately — nothing is filtered out yet
+(that's a one-line `WHERE` clause later, once there's real data to decide
+from, per explicit instruction).
+**Verified live against production, one isolated request per category (unique
+query string + delay before reading D1, to avoid rapid-fire ordering noise):**
+ChatGPT-User → `agent`, GPTBot → `training`, PerplexityBot → `search`,
+`python-requests` UA → `unrecognized`, a real browser UA → `human`. All five
+matched exactly.
+
+**Dashboard (`insights/`) built, deployed to its workers.dev URL, NOT yet
+bound to `insights.eleviq.solutions` — pending Cloudflare Access setup.**
+New standalone Worker (separate from `site-logger`, which only writes) —
+reads the same `eleviq-site-log` D1 database, read-only. One JSON endpoint
+(`GET /api/insights`, optional `?path=<exact pathname>`) + a static page
+(`public/`, served via Workers Static Assets) that is **one HTML/JS file
+driving two modes off that query param** — Overview (all pages: stat row,
+5-category stacked-bar trend chart, top-pages table) and per-page (same
+stats/chart/events, scoped, top-pages table hidden — exact match, not a
+prefix). Raw events collapsed by default in a `<details>`, same convention
+as Part A. Chart palette: the dataviz skill's default 5-color slots
+(human/agent/search/training/unrecognized, fixed order), validated with
+`validate_palette.js` — passes in both modes; light mode carries a contrast
+WARN satisfied by the legend + table being present, per the skill's relief
+rule.
+**Bug caught by testing against the real remote D1, fixed before calling it
+done:** 155 pre-migration rows (logged before `visitor_category` existed)
+came back as SQL `NULL`, which silently broke the stat breakdown's sum
+(pieces didn't add up to the total) and would have rendered "null" in the
+raw table. Fixed with `COALESCE(visitor_category, 'uncategorized')` in every
+query in `insights/src/routes/insights.ts`; the dashboard surfaces it as its
+own labeled stat column with an explanatory hint, excluded from the trend
+chart (it isn't a real category, just pre-upgrade noise) — verified the
+by-category counts now sum exactly to the total, for both Overview and a
+per-page filter.
+Shared visual language with the rest of the lab (`styles.css` + `lab.css`,
+copied into `insights/public/` since this Worker doesn't share a build with
+the GitHub Pages site — kept in sync by hand, not by tooling, noted in the
+files' own comments).
+**Cloudflare Access: done, live, verified.** Self-hosted Access application
+on `insights.eleviq.solutions` (Zero Trust dashboard — outside this
+session's wrangler OAuth scope, set up by the user), identity provider
+"Cloudflare" (the built-in default — email one-time-PIN, no separate IdP
+setup needed), policy allowing the user's email only. Bound via Workers
+**Custom Domains** (`custom_domain = true` in `insights/wrangler.toml`, not
+a `zone_name` route — this is a brand-new subdomain with no prior DNS
+record, so Custom Domains provisions the DNS + TLS itself, unlike
+site-logger's `zone_name` route which had to preserve an existing
+GitHub Pages record). **Verified live:** an unauthenticated request to
+`https://insights.eleviq.solutions/` returns `302` to
+`nameless-wind-f7be.cloudflareaccess.com/cdn-cgi/access/login/…` — a genuine
+Access login redirect, not the dashboard content. Demo 4 (Measure) — both
+parts — is now fully built, deployed, and access-controlled where it needs
+to be.
 
 # ElevIQ Lab — Demo 1 (Identify) + Demo 4 part A (Measure)
 

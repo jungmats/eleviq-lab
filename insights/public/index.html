@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="robots" content="noindex, nofollow">
+  <title>Insights — ElevIQ Lab</title>
+  <link rel="icon" href="eleviq_icon.png">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="lab.css">
+  <link rel="stylesheet" href="insights.css">
+</head>
+<body>
+
+  <header>
+    <a href="https://eleviq.solutions"><img src="eleviq_logo_v1.6.png" alt="ElevIQ Logo"></a>
+    <p class="brand-line">ElevIQ Lab</p>
+    <p><b>Insights</b></p>
+    <p class="lab-crumbs" id="crumbs"></p>
+  </header>
+
+  <div class="container wide">
+    <main>
+
+      <section class="section step">
+        <h2><span class="step-n">1</span> <span id="section-title">Overview — all pages</span></h2>
+        <p class="hint" id="scope-hint"></p>
+        <p class="hint" id="uncategorized-hint" hidden><b>Uncategorized</b> rows predate the category upgrade (site-logger started writing it on 2026-09-11) — not a fifth real category, just data logged before that field existed.</p>
+
+        <div class="table-scroll">
+          <table class="stat-table" id="stats">
+            <thead>
+              <tr><th>Total</th><th>Human</th><th>Agent</th><th>Search</th><th>Training</th><th>Unrecognized</th><th>Uncategorized</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td id="stat-total">—</td>
+                <td id="stat-human">—</td>
+                <td id="stat-agent">—</td>
+                <td id="stat-search">—</td>
+                <td id="stat-training">—</td>
+                <td id="stat-unrecognized">—</td>
+                <td id="stat-uncategorized">—</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <button class="send-btn" id="refresh">Refresh</button>
+
+        <div class="chart-wrap" id="chart-wrap">
+          <p class="pane-title" id="chart-title">Visits per day, by category</p>
+          <div id="chart"></div>
+          <div class="chart-legend" id="legend"></div>
+        </div>
+
+        <div id="top-pages-wrap">
+          <p class="pane-title">Top pages</p>
+          <div class="table-scroll">
+            <table class="log-table" id="top-pages-table">
+              <thead>
+                <tr><th>Page</th><th>Visits</th><th>Agent visits</th></tr>
+              </thead>
+              <tbody id="top-pages-rows"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <details class="log-details">
+          <summary>Raw events (<span id="log-count">—</span> of last <span id="row-limit">100</span>, newest first)</summary>
+          <div class="log-table-wrap">
+            <table class="log-table" id="log-table">
+              <thead id="log-head">
+                <tr><th>Time</th><th>Page</th><th>Visitor</th><th>Category</th><th>AI referral</th><th>Country</th></tr>
+              </thead>
+              <tbody id="log-rows"></tbody>
+            </table>
+          </div>
+        </details>
+      </section>
+
+      <section class="section step">
+        <h2><span class="step-n">2</span> Where this data comes from</h2>
+        <p>Every HTML response from <code>eleviq.solutions</code> is logged by a
+          transparent Worker (<code>site-logger</code>) that sits in front of the site —
+          it fetches the real page and returns it completely unchanged, and separately
+          writes one anonymous row per view: page, a visitor category, which AI
+          assistant referred the click (if any), and country. No cookies, no visitor id,
+          no raw IP.</p>
+        <p>The category comes from the User-Agent string, matched against known
+          signatures (the same taxonomy Cloudflare's own AI Crawl Control uses):</p>
+        <dl class="cat-defs">
+          <dt>Agent</dt><dd>a specific person asked an AI assistant something right now, and it fetched this page live to answer — ChatGPT‑User, Claude‑User, Perplexity‑User, and similar. This is the attribution signal: a real request on someone's behalf, not background crawling.</dd>
+          <dt>Human</dt><dd>looks like an ordinary browser, no known agent signature.</dd>
+          <dt>Search</dt><dd>indexing crawlers — Googlebot, Bingbot, OAI‑SearchBot, and similar.</dd>
+          <dt>Training</dt><dd>bulk crawlers that train models — GPTBot, CCBot, and similar. Not tied to any one person's request.</dd>
+          <dt>Unrecognized</dt><dd>doesn't match a known signature and doesn't look like a browser either — most often a home‑grown or unlabelled agent (a bare HTTP client's default User-Agent, e.g. <code>python-requests</code> or <code>curl</code>).</dd>
+        </dl>
+        <p><b>The honest limit:</b> this is a heuristic, string-matched signal — the same
+          kind <code>request.cf.verifiedBotCategory</code> is, not a cryptographic proof
+          (see <a href="https://lab.eleviq.solutions/identity/">Demo 1</a> for what a real proof looks like).
+          A UA that deliberately claims to be a normal browser is indistinguishable from a
+          normal browser by this method, full stop. All five categories are logged for
+          now, deliberately — nothing is filtered out yet.</p>
+        <p>This page shows real production traffic to <code>eleviq.solutions</code>, unlike
+          Demo 1's own access log (public, demo-only data) — so it sits behind
+          <b>Cloudflare Access</b> at the edge rather than being left open.</p>
+      </section>
+
+    </main>
+  </div>
+
+  <footer>
+    &copy; 2025–2026 ElevIQ. &nbsp;·&nbsp; <a href="https://eleviq.solutions">eleviq.solutions</a>
+  </footer>
+
+  <script type="module" src="insights.js"></script>
+</body>
+</html>

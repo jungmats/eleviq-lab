@@ -1,0 +1,572 @@
+/* ElevIQ Lab — styles for the interactive demo consoles.
+   Layered on top of the main site's styles.css (same design tokens). */
+
+:root {
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  --ok: #1a7f45;
+  --ok-bg: #e7f5ec;
+  --bad: #b83232;
+  --bad-bg: #fbeaea;
+  --warn: #8a6100;
+  --warn-bg: #fbf1dd;
+  --code-bg: #f4f6f9;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ok: #5fd08a;
+    --ok-bg: #14301f;
+    --bad: #f28b8b;
+    --bad-bg: #3a1d1d;
+    --warn: #e8c069;
+    --warn-bg: #352a12;
+    --code-bg: #10161c;
+  }
+}
+
+/* wider column than the main site — the console needs the room */
+.container.wide { max-width: 940px; }
+
+/* --- breadcrumb / lab identity --------------------------------------- */
+
+.lab-crumbs {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.8);
+  margin: 0.4rem 0 0;
+}
+
+.lab-crumbs a {
+  color: rgba(255, 255, 255, 0.9);
+  text-decoration: underline;
+}
+
+.unlisted-note {
+  margin: 1rem 0 0;
+  padding: 0.6rem 0.9rem;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  background: var(--code-bg);
+}
+
+/* --- step numbering -------------------------------------------------- */
+
+.step > h2 {
+  display: block;
+  border: 0;
+  padding: 0;
+  margin-bottom: 0.25rem;
+}
+
+.step > h2 .step-n {
+  display: inline-block;
+  min-width: 1.6rem;
+  margin-right: 0.5rem;
+  padding: 0.05rem 0.45rem;
+  border-radius: 6px;
+  background: var(--cyan);
+  color: #fff;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.step-lead {
+  color: var(--text);
+  font-weight: 600;
+  margin-top: 0.5rem;
+}
+
+.agent-callout {
+  margin: 0.75rem 0 1rem;
+  padding: 0.8rem 1rem;
+  border-left: 3px solid var(--cyan);
+  border-radius: 6px;
+  background: var(--code-bg);
+  font-size: 0.9rem;
+  color: var(--text);
+}
+
+/* standalone code blocks in prose (section 4) */
+.step h3 { margin-top: 1.4rem; }
+.step > pre.wire { margin: 0.5rem 0; }
+
+/* --- the console --------------------------------------------------- */
+
+.console {
+  margin-top: 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.console-controls {
+  padding: 1.1rem 1.25rem;
+  background: var(--code-bg);
+  border-bottom: 1px solid var(--border);
+}
+
+.control-row {
+  margin-bottom: 0.9rem;
+}
+
+.control-row:last-child {
+  margin-bottom: 0;
+}
+
+.control-row > .label {
+  display: block;
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: var(--heading-color);
+  margin-bottom: 0.4rem;
+}
+
+.scenario {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.scenario label {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  padding: 0.4rem 0.55rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.scenario label:hover {
+  border-color: var(--cyan);
+}
+
+.scenario input {
+  margin: 0;
+}
+
+.scenario .s-name {
+  font-weight: 700;
+}
+
+.scenario .s-desc {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.console-controls select,
+.console-controls input[type="text"] {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--grey2);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.9rem;
+}
+
+.hint {
+  margin: 0.4rem 0 0;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+.send-btn {
+  margin-top: 0.4rem;
+  padding: 0.6rem 1.3rem;
+  background: var(--cyan);
+  color: #fff;
+  border: 0;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.send-btn:hover {
+  background: #00a0c5;
+}
+
+.send-btn:disabled {
+  background: var(--grey2);
+  cursor: progress;
+}
+
+/* --- request / verdict split ------------------------------------- */
+
+.exchange {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+.exchange > div {
+  padding: 1.1rem 1.25rem;
+}
+
+.exchange > .req {
+  border-right: 1px solid var(--border);
+}
+
+.pane-title {
+  margin: 0 0 0.6rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+pre.wire {
+  margin: 0;
+  padding: 0.8rem 0.9rem;
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-x: auto;
+}
+
+pre.wire .h-name { color: var(--petrol); font-weight: 700; }
+@media (prefers-color-scheme: dark) { pre.wire .h-name { color: var(--cyan); } }
+pre.wire .muted { color: var(--text-muted); }
+
+.copy-curl {
+  margin-top: 0.6rem;
+  padding: 0.35rem 0.7rem;
+  background: transparent;
+  border: 1px solid var(--cyan);
+  border-radius: 6px;
+  color: var(--heading-color);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.copy-curl:hover { background: var(--cyan); color: #fff; }
+
+/* verdict */
+
+.verdict {
+  border-radius: 8px;
+  padding: 0.8rem 0.9rem;
+  border: 1px solid var(--border);
+}
+
+.verdict.is-ok    { background: var(--ok-bg);   border-color: var(--ok); }
+.verdict.is-bad   { background: var(--bad-bg);  border-color: var(--bad); }
+.verdict.is-warn  { background: var(--warn-bg); border-color: var(--warn); }
+
+.verdict .status {
+  font-family: var(--heading-font);
+  font-weight: 800;
+  font-size: 1.05rem;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.verdict.is-ok   .status { color: var(--ok); }
+.verdict.is-bad  .status { color: var(--bad); }
+.verdict.is-warn .status { color: var(--warn); }
+
+.verdict .reason {
+  margin: 0.35rem 0 0;
+  font-size: 0.88rem;
+  color: var(--text);
+}
+
+/* informational, not an error — the request still succeeded */
+.claim-warning {
+  margin: 0.55rem 0 0;
+  padding: 0.35rem 0.6rem;
+  border-radius: 6px;
+  background: var(--warn-bg);
+  color: var(--warn);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.facts {
+  margin: 0.8rem 0 0;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.25rem 0.9rem;
+  font-size: 0.82rem;
+}
+
+.facts dt { color: var(--text-muted); }
+.facts dd { margin: 0; font-family: var(--mono); word-break: break-word; }
+
+.response-body {
+  margin-top: 1rem;
+  padding: 1.1rem 1.25rem;
+  border-top: 1px solid var(--border);
+}
+
+/* --- log ---------------------------------------------------------- */
+
+.log {
+  margin-top: 1rem;
+}
+
+.log ol {
+  margin: 0.4rem 0 0;
+  padding: 0;
+  list-style: none;
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.log li { padding: 0.15rem 0; border-bottom: 1px dotted var(--border); }
+.log li .v-ok   { color: var(--ok); font-weight: 700; }
+.log li .v-bad  { color: var(--bad); font-weight: 700; }
+.log li .v-warn { color: var(--warn); font-weight: 700; }
+
+/* --- without / with comparison ----------------------------------- */
+
+.compare {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-top: 0.5rem;
+}
+
+.compare > div { background: var(--surface); padding: 1.1rem 1.25rem; }
+.compare h3 { margin: 0 0 0.6rem; font-size: 0.95rem; }
+.compare .without h3 { color: var(--bad); }
+.compare .with h3 { color: var(--ok); }
+.compare ul { margin: 0; padding-left: 1.1rem; font-size: 0.86rem; }
+.compare li { margin-bottom: 0.35rem; color: var(--text-muted); }
+
+/* --- landing page pipeline ------------------------------------- */
+
+.pipeline {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+@media (max-width: 620px) {
+  .pipeline { grid-template-columns: 1fr; }
+}
+
+.stage {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1.1rem 1.2rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.stage h3 { margin: 0 0 0.15rem; }
+.stage .stage-sub { margin: 0 0 0.6rem; font-size: 0.8rem; color: var(--text-muted); }
+.stage p { margin: 0 0 0.8rem; font-size: 0.87rem; }
+.stage .button { align-self: flex-start; margin: 0.1rem 0 1.1rem; }
+.stage .stack {
+  margin: auto 0 0;
+  padding-top: 0.7rem;
+  border-top: 1px solid var(--border);
+  font-size: 0.76rem;
+  color: var(--text-muted);
+}
+
+.badge {
+  align-self: flex-start;
+  margin-bottom: 0.6rem;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.badge.live { background: var(--ok-bg); color: var(--ok); }
+.badge.soon { background: var(--code-bg); color: var(--text-muted); border: 1px solid var(--border); }
+
+.stage.is-soon { opacity: 0.72; }
+
+/* --- Demo 4 (Measure) dashboard ---------------------------------- */
+
+/* Categorical palette for the chart — validated with the dataviz skill's
+   validator (fixed order, adjacent-pair CVD-safe in both modes). Not reused
+   from --ok/--bad/--warn: that trio fails as an adjacent categorical set. */
+:root {
+  --cat-own: #2a78d6;
+  --cat-registry: #eb6834;
+  --cat-unsigned: #1baf7a;
+  --cat-other: #eda100;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --cat-own: #3987e5;
+    --cat-registry: #d95926;
+    --cat-unsigned: #199e70;
+    --cat-other: #c98500;
+  }
+}
+:root[data-theme="dark"] {
+  --cat-own: #3987e5;
+  --cat-registry: #d95926;
+  --cat-unsigned: #199e70;
+  --cat-other: #c98500;
+}
+
+.stat-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 1rem;
+  table-layout: fixed;
+}
+
+.stat-table th,
+.stat-table td {
+  border: 1px solid var(--border);
+  padding: 0.7rem 0.9rem;
+  text-align: left;
+}
+
+.stat-table thead th {
+  background: var(--code-bg);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.stat-table tbody td {
+  font-family: var(--heading-font);
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--heading-color);
+}
+
+/* --- collapsible recent-requests panel --------------------------- */
+
+.log-details {
+  margin-top: 1.2rem;
+}
+
+.log-details summary {
+  cursor: pointer;
+  padding: 0.6rem 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--code-bg);
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--heading-color);
+  list-style: none;
+}
+
+.log-details summary::-webkit-details-marker { display: none; }
+
+.log-details summary::before {
+  content: "▸ ";
+  display: inline-block;
+  color: var(--cyan);
+}
+
+.log-details[open] summary::before {
+  content: "▾ ";
+}
+
+.log-details .log-table-wrap {
+  margin-top: 0.6rem;
+}
+
+.chart-wrap {
+  margin-top: 1.2rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem 1.1rem 0.5rem;
+}
+
+.chart-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.chart-grid {
+  stroke: var(--border);
+  stroke-width: 1;
+}
+
+.chart-axis-label {
+  font-size: 9px;
+  fill: var(--text-muted);
+  font-family: var(--mono);
+}
+
+.chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.9rem;
+  margin: 0.6rem 0 0.8rem;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.legend-item { display: inline-flex; align-items: center; gap: 0.4rem; }
+
+.legend-swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+}
+
+.log-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.log-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+
+.log-table th,
+.log-table td {
+  padding: 0.5rem 0.7rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.log-table th {
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  background: var(--code-bg);
+}
+
+.log-table tbody tr:last-child td { border-bottom: 0; }
+
+/* --- responsive ------------------------------------------------- */
+
+@media (max-width: 680px) {
+  .exchange { grid-template-columns: 1fr; }
+  .exchange > .req { border-right: 0; border-bottom: 1px solid var(--border); }
+  .compare { grid-template-columns: 1fr; }
+}

@@ -1,0 +1,39 @@
+# insights.eleviq.solutions dashboard — Cloudflare Worker + static assets.
+#
+#   npx wrangler dev    --config insights/wrangler.toml   local: http://localhost:8789
+#   npx wrangler deploy --config insights/wrangler.toml    -> eleviq-insights.<subdomain>.workers.dev
+#
+# Reads the same D1 database site-logger writes to (eleviq-site-log) —
+# read-only, no writes from here.
+#
+# NOT yet bound to insights.eleviq.solutions — the [[routes]] block below is
+# commented out on purpose, same pattern as site-logger/wrangler.toml. This
+# page shows real eleviq.solutions visitor data, so it must go live behind
+# Cloudflare Access (see PLAN.md) — set that up first, then uncomment routes
+# and deploy.
+#
+# custom_domain = true (not zone_name + wildcard, unlike site-logger) —
+# insights.eleviq.solutions is a brand-new subdomain with no existing DNS
+# record or origin to preserve, so Workers Custom Domains is the simpler
+# mechanism: it provisions the DNS record and TLS cert itself.
+
+name = "eleviq-insights"
+main = "src/index.ts"
+compatibility_date = "2026-09-01"
+workers_dev = true
+
+[observability]
+enabled = true
+
+[assets]
+directory = "./public"
+binding = "ASSETS"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "eleviq-site-log"
+database_id = "68dedff2-12ad-4dd7-b19c-d5c81b577a16"
+
+[[routes]]
+pattern = "insights.eleviq.solutions"
+custom_domain = true

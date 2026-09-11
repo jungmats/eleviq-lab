@@ -6,9 +6,12 @@
  * until deliberately enabled, see PLAN.md). It fetches the real origin
  * (GitHub Pages) and returns that response completely unchanged; the only
  * side effect is an anonymous, async log entry for HTML page responses —
- * who came (human vs. which agent, by User-Agent signature), whether a
- * known AI assistant referred them, Cloudflare's own bot-category signal,
- * and country. No cookies, no persistent visitor id, no raw IP.
+ * who came (human vs. which agent, by User-Agent signature — see
+ * lib/classify.ts for the human/search/training/agent/unrecognized
+ * categories), whether a known AI assistant referred them, Cloudflare's own
+ * bot-category signal, and country. No cookies, no persistent visitor id,
+ * no raw IP. Logging every category for now — not filtering training/search
+ * crawlers out yet, deliberately, until there's real data to decide from.
  *
  * Demo 4 (Measure), Part B — see PLAN.md and identity/index.html for how
  * this differs from the lab's own access_log (Part A): this is real
@@ -45,9 +48,11 @@ export default {
       const contentType = response.headers.get("content-type") ?? "";
       if (contentType.includes("text/html")) {
         const cf = request.cf as { country?: string; verifiedBotCategory?: string } | undefined;
+        const visitor = classifyVisitor(request.headers.get("User-Agent"));
         logPageView(env, ctx, {
           path: url.pathname,
-          visitor: classifyVisitor(request.headers.get("User-Agent")),
+          visitor: visitor.name,
+          visitorCategory: visitor.category,
           cfBotCategory: cf?.verifiedBotCategory || null,
           referrerAgent: classifyReferrer(request.headers.get("Referer")),
           country: cf?.country ?? null,
