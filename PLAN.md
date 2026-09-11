@@ -7,10 +7,12 @@ verified end-to-end in a real browser and via all four external test paths.
 Since initial deploy:
 - **Identity honesty fix:** trust store collapsed to one "ElevIQ Lab demo
   agent" key (was 3 keys impersonating OpenAI/Anthropic/Perplexity). The
-  console's claimed-identity control is now a free-text input (default
-  `ElevIQ-Demo-Bot/1.0`) — edit it to anything; signing always uses the one
-  demo key, so "Claimed" and "Verified as" can visibly differ. Added §3 "What
-  makes a real agent's key trustworthy" (secret key + vetted registry).
+  console's claimed-identity control is now a free-text input, defaulting to
+  `ElevIQ Lab demo agent` — an exact match to what actually verifies, so the
+  default state shows no mismatch; edit it to anything else and watch it
+  diverge. Signing always uses the one demo key, so "Claimed" and "Verified
+  as" can visibly differ once you do. Added §3 "What makes a real agent's key
+  trustworthy" (secret key + vetted registry) and the ⚠️ claim-mismatch flag.
 - **Access log:** D1 table `access_log` (`gateway/schema.sql`), one row per
   request to `/api/identity/price-list` with outcome + identity. Foundation
   for Demo 4; no dashboard yet, inspect via `wrangler d1 execute`.

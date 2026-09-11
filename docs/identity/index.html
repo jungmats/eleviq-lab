@@ -85,13 +85,9 @@
             <div class="control-row">
               <span class="label">2 — What identity does it claim?</span>
               <input type="text" id="ua" value="ElevIQ Lab demo agent">
-              <p class="hint">Just a string — edit it to anything you like and send again.
-                It is never what's actually signed. With <b>Valid signature</b> the server
-                always verifies the same key ("ElevIQ Lab demo agent") no matter what you
-                typed here — the claim and the verified identity are shown separately in
-                the result. (Browsers can't set <code>User-Agent</code> from a script, so the
-                console sends the claim in <code>X-Demo-Agent-Claim</code>; <code>curl</code>
-                would use <code>-H&nbsp;'User-Agent: …'</code>.)</p>
+              <p class="hint">Just a string — try changing it and send again. Only the key
+                gets verified; the name shown for it is a label we attach, not part of what's
+                checked.</p>
             </div>
 
             <button class="send-btn" id="send">Send request →</button>
@@ -129,21 +125,20 @@
       <section class="section step">
         <h2><span class="step-n">3</span> Where the check runs</h2>
         <p>Verification runs in a standalone <b>gateway</b> — a small Cloudflare Worker
-          (<code>eleviq-lab-gateway.gateway-worker.workers.dev</code>) that holds the trusted key directory
-          and runs the <code>web-bot-auth</code> verification. This page is a separate static
-          site that just calls it. The gateway is the artifact ElevIQ would deploy for a
-          customer:</p>
+          (<code>eleviq-lab-gateway.gateway-worker.workers.dev</code>) that holds the trusted
+          key directory and runs the <code>web-bot-auth</code> verification. This page is a
+          separate static site that only calls it. For a customer, ElevIQ deploys the same
+          gateway in front of their endpoint:</p>
         <ul>
-          <li><b>Nothing for the customer to install or maintain.</b> Verification — and
-            later, policy and payment — runs in the gateway ElevIQ hosts and keeps current.
-            No plugin, no library in their stack, no server for them to operate.</li>
-          <li><b>One change to their site.</b> The agent-facing endpoint is pointed at the
-            gateway with a single DNS record — a subdomain <code>CNAME</code>, or a Worker
-            route if they are already on Cloudflare. Verified requests are passed through to
-            their origin unchanged; the human-facing site is untouched.</li>
-          <li><b>Standard, not lock-in.</b> It is plain RFC 9421 verification. The gateway is
-            a <code>fetch()</code> handler — it ports to any serverless host with a small
-            routing change and the same <code>lib/</code>.</li>
+          <li>Verification — and later, policy and payment — runs in the gateway. Nothing
+            runs in the customer's own stack.</li>
+          <li>The agent-facing endpoint points at the gateway via one DNS record — a
+            subdomain <code>CNAME</code>, or a Worker route if they're already on Cloudflare.
+            Verified requests pass through to their origin unchanged; the human-facing site
+            is untouched.</li>
+          <li>It's plain RFC 9421 verification in a <code>fetch()</code> handler — portable
+            to any serverless host with a small routing change; the same <code>lib/</code>
+            works there too.</li>
         </ul>
         <p>A customer who wants verification handled entirely at their own edge can instead
           switch on Cloudflare's native Web Bot Auth — no code at all, but their domain must
@@ -158,37 +153,29 @@
             keypair once, keeps the private half in a secret store only it can reach, and
             publishes only the public half. A verified signature then proves <i>possession of
             that secret</i> — it cannot be forged or replayed onto a different request.</li>
-          <li><b>Its directory is recognised, not just reachable.</b> Fetching a directory
-            over HTTPS from the domain named in <code>Signature-Agent</code> proves "whoever
-            controls that domain signed this" — but that alone would let anyone who registers
-            a domain and generates a keypair pass as a legitimate agent. Real deployments
-            check the directory against a vetted registry — Cloudflare's Verified Bots
-            program (extended with message signatures) or the emerging IETF/Bedrock
-            agent-directory registry — so a verifier trusts <i>known, recognised</i> agent
-            identities, not every syntactically valid signature.</li>
+          <li><b>Its directory is recognised, not just reachable.</b> Each operator publishes
+            a <i>directory</i> — a small file listing its public keys — at a fixed web address
+            it controls. Fetching that file over HTTPS proves domain control, but that's not
+            enough on its own: anyone can register a domain and generate a keypair. Real
+            deployments also check the domain against a vetted registry (Cloudflare's Verified
+            Bots, the emerging IETF/Bedrock registry), so only known operators pass. The name
+            shown for a recognised operator — "OpenAI," "ChatGPT" — is a label the registry
+            chose, not something the directory itself declares; <code>chatgpt.com</code>'s
+            directory lists only keys.</li>
         </ul>
         <p>Put together: a signature proves the caller holds a specific key; a registry says
           that key belongs to someone the ecosystem has actually vetted.</p>
 
-        <h3>A second trust tier — live, not hypothetical</h3>
-        <p>Alongside the lab's own demo key, the gateway trusts one real, external operator:
-          <b>OpenAI, via <code>chatgpt.com</code>'s own published directory</b> — fetched live
-          at verify time (short-cached, never copied) and checked against a small allow-list
-          the gateway holds, exactly as described above. If the signature is genuine, the
-          result reads <code>"trust_tier": "registry:https://chatgpt.com"</code> instead of
-          <code>"own"</code>.</p>
-        <p><b>Confirmed working with "ChatGPT Work"</b> (OpenAI's enterprise/agentic product) —
-          asking it to fetch a protected endpoint on this gateway produced a genuine,
-          correctly-verified Web Bot Auth signature, whose key matched
-          <code>chatgpt.com</code>'s live directory exactly. <b>Not confirmed for consumer
-          ChatGPT</b> — in our own testing it could not fetch an unlisted URL like this one at
-          all (see step 5-A). Web Bot Auth is brand new and, so far, scoped to specific
-          agentic products rather than every surface a company ships; this lab reflects
-          exactly what's been confirmed, no more.</p>
-        <p>Anthropic and Perplexity do not yet publish a directory at their main domains —
-          added the moment one does. Claiming to be <code>chatgpt.com</code> without holding
-          OpenAI's actual key still fails: the gateway checks the real live directory, finds
-          no match, and rejects it — try it yourself in step 5.</p>
+        <h3>The second tier: chatgpt.com</h3>
+        <p>Alongside the lab's own demo key, the gateway trusts one external operator —
+          OpenAI, via <code>chatgpt.com</code>'s own directory. It's fetched live at verify
+          time (cached briefly, never copied) and checked against the gateway's allow-list. A
+          real OpenAI signature verifies this way, through that directory, instead of through
+          the lab's own key.</p>
+        <p>Confirmed working with ChatGPT Work (OpenAI's enterprise product). Not confirmed
+          for consumer ChatGPT.</p>
+        <p>Anthropic and Perplexity don't publish a directory yet; we'll add them once they
+          do.</p>
       </section>
 
       <section class="section step">
