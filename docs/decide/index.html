@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="gateway" content="https://eleviq-lab-gateway.gateway-worker.workers.dev">
+  <title>Decide — ElevIQ Lab</title>
+  <link rel="icon" href="../assets/eleviq_icon.png">
+  <link rel="stylesheet" href="../styles.css">
+  <link rel="stylesheet" href="../lab.css">
+</head>
+<body>
+
+  <header>
+    <a href="https://eleviq.solutions"><img src="../assets/eleviq_logo_v1.6.png" alt="ElevIQ Logo"></a>
+    <p class="brand-line">ElevIQ Lab</p>
+    <p><b>Decide — access policy</b></p>
+    <p class="lab-crumbs"><a href="../">Lab home</a> &nbsp;·&nbsp; Demo 2 of 4 &nbsp;·&nbsp; Decide</p>
+  </header>
+
+  <div class="container wide">
+    <main>
+
+      <section class="section step">
+        <h2><span class="step-n">1</span> The problem</h2>
+        <p>Demo 1 answered "is this really who it says it is?" Even if the answer is yes,
+          that leaves a different question open: is it allowed to do a certain action, or
+          access a certain resource?</p>
+        <p>A website can state an answer in two places:</p>
+        <ul>
+          <li><b>robots.txt</b>, extended with a new signal called
+            <a href="https://contentsignals.org/" target="_blank" rel="noopener">Content Signals</a>:
+            a simple yes or no for each type of use — search, live AI answers, or AI
+            training.</li>
+          <li>A license file in a format called <b><a href="https://rslstandard.org/" target="_blank" rel="noopener">Really Simple Licensing (RSL)</a></b>
+            — a short, machine-readable way to spell out exactly what's allowed, refused,
+            or requires payment.</li>
+        </ul>
+        <p>Both are real files, served by this lab's gateway. You can view them here:
+          <a href="https://eleviq-lab-gateway.gateway-worker.workers.dev/robots.txt" target="_blank" rel="noopener"><code>/robots.txt</code></a>
+          and
+          <a href="https://eleviq-lab-gateway.gateway-worker.workers.dev/.well-known/rsl.xml" target="_blank" rel="noopener"><code>/.well-known/rsl.xml</code></a>.</p>
+        <p>Publishing this doesn't stop anything by itself — a request can simply ignore
+          it. This demo shows how a server enforces the policy instead: checking each
+          request and blocking the ones that violate it.</p>
+        <p class="unlisted-note">This is an unlisted lab page — not indexed, no inbound
+          links. The API endpoint it calls is public on purpose.</p>
+      </section>
+
+      <section class="section step">
+        <h2><span class="step-n">2</span> The demo</h2>
+
+        <div class="agent-callout">
+          Every request below uses the same signed identity as Demo 1. What changes is
+          only what the agent says it plans to do with the resource — sent as a header we
+          call <code>X-Agent-Purpose</code> (our own convention for this demo, not a
+          standard). Its three possible values match the same three uses from robots.txt
+          and RSL above: search, live AI answers (<code>ai-input</code>), and AI training
+          (<code>ai-train</code>).
+        </div>
+
+        <p class="step-lead">The agent requests a protected resource — Q3 sales notes.
+          Choose what it says it plans to do, then send the request and see the server's
+          decision.</p>
+
+        <div class="console">
+          <div class="console-controls">
+            <div class="control-row">
+              <span class="label">What purpose does the agent declare?</span>
+              <div class="scenario" id="scenario">
+                <label>
+                  <input type="radio" name="purpose" value="ai-input" checked>
+                  <span>
+                    <span class="s-name">ai-input — permitted use</span><br>
+                    <span class="s-desc">Fetching this live, as context for answering a question right now.</span>
+                  </span>
+                </label>
+                <label>
+                  <input type="radio" name="purpose" value="ai-train">
+                  <span>
+                    <span class="s-name">ai-train — prohibited use</span><br>
+                    <span class="s-desc">Using this to train a model. The stated policy prohibits it.</span>
+                  </span>
+                </label>
+                <label>
+                  <input type="radio" name="purpose" value="undeclared">
+                  <span>
+                    <span class="s-name">No purpose declared</span><br>
+                    <span class="s-desc">What almost every request sends today — no <code>X-Agent-Purpose</code> header at all.</span>
+                  </span>
+                </label>
+              </div>
+            </div>
+
+            <button class="send-btn" id="send">Send request →</button>
+          </div>
+
+          <div class="exchange">
+            <div class="req">
+              <p class="pane-title">What the agent sent</p>
+              <pre class="wire" id="req-wire">Press “Send request” to make the call.</pre>
+              <button class="copy-curl" id="copy-curl" hidden>Copy as curl</button>
+            </div>
+            <div class="res">
+              <p class="pane-title">What the server did</p>
+              <div class="verdict" id="verdict">
+                <div class="status">— Awaiting request</div>
+                <p class="reason">No request sent yet.</p>
+                <dl class="facts" id="facts" hidden></dl>
+              </div>
+            </div>
+          </div>
+
+          <div class="response-body">
+            <p class="pane-title">Response body</p>
+            <pre class="wire" id="res-body">—</pre>
+          </div>
+        </div>
+
+        <div class="log">
+          <span class="label">Request log</span>
+          <ol id="log"></ol>
+        </div>
+        <p class="hint">That list is only in your browser — it disappears on refresh.
+          Every request here is also logged server-side: see the
+          <a href="../measure/">agent access dashboard</a>.</p>
+      </section>
+
+      <section class="section step">
+        <h2><span class="step-n">3</span> Stated vs enforced</h2>
+        <p>Both panels below are fetched live, not hardcoded.</p>
+        <div class="compare">
+          <div>
+            <h3>Stated (fetched live)</h3>
+            <p class="pane-title">GET /robots.txt</p>
+            <pre class="wire" id="stated-robots">Loading…</pre>
+            <p class="pane-title" style="margin-top:0.9rem">GET /.well-known/rsl.xml</p>
+            <pre class="wire" id="stated-rsl">Loading…</pre>
+          </div>
+          <div>
+            <h3>Enforced (this gateway's actual decision)</h3>
+            <ul>
+              <li><code>ai-input</code> and <code>search</code> are declared
+                <b>permitted</b> — a request declaring either is actually allowed
+                (<code>200</code>).</li>
+              <li><code>ai-train</code> is declared <b>prohibited</b> — a request
+                declaring it is actually refused (<code>403</code>), even from the exact
+                same trusted identity that was just allowed for <code>ai-input</code>.</li>
+              <li><b>No purpose declared → refused</b> (<code>403</code>). The Content
+                Signals spec itself treats a missing answer as neutral — neither allowed
+                nor refused. This gateway is stricter: no answer means no.</li>
+            </ul>
+            <p>The panel on the left and this decision use the exact same policy data, so
+              they can't drift apart. But publishing a policy doesn't enforce it — that
+              happens above, in section 2.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="section step">
+        <h2><span class="step-n">4</span> Test it from your own tools</h2>
+        <p>The console above is a convenience. The gateway is a plain public HTTP API.</p>
+
+        <h3>A — Ask an AI assistant</h3>
+        <pre class="wire">Fetch https://eleviq-lab-gateway.gateway-worker.workers.dev/api/decide/deal-notes,
+tell me what it returns and why, then try again declaring a different
+X-Agent-Purpose (ai-input, ai-train, or none at all).</pre>
+
+        <h3>B — Unsigned · nothing to install</h3>
+        <pre class="wire">curl -i https://eleviq-lab-gateway.gateway-worker.workers.dev/api/decide/deal-notes</pre>
+        <p>Returns <code>401</code> — Demo 2 still requires the same signed identity as
+          Demo 1 before it even considers a policy question.</p>
+
+        <h3>C — Signed via the test helper · just curl</h3>
+        <pre class="wire"># 1 · ask the gateway to sign a request for you
+#     (a test aid — NOT part of the security model)
+curl -s -X POST https://eleviq-lab-gateway.gateway-worker.workers.dev/api/sign \
+  -H 'content-type: application/json' \
+  -d '{"url":"https://eleviq-lab-gateway.gateway-worker.workers.dev/api/decide/deal-notes"}'
+
+# 2 · replay the three headers it returns, adding the declared purpose
+curl -i https://eleviq-lab-gateway.gateway-worker.workers.dev/api/decide/deal-notes \
+  -H 'Signature-Input: …' -H 'Signature: …' -H 'Signature-Agent: …' \
+  -H 'X-Agent-Purpose: ai-train'</pre>
+        <p>Try <code>ai-input</code>, <code>ai-train</code>, and dropping the header
+          entirely to see all three outcomes.</p>
+
+        <h3>D — Signed client-side · the real reference code (Node.js 18+)</h3>
+        <pre class="wire">mkdir wba && cd wba
+npm init -y && npm install web-bot-auth
+
+curl -O https://lab.eleviq.solutions/reference/sign-request.mjs
+curl -O https://lab.eleviq.solutions/reference/demo-agent.jwk.json
+
+node sign-request.mjs \
+  --url https://eleviq-lab-gateway.gateway-worker.workers.dev/api/decide/deal-notes \
+  --key demo-agent.jwk.json --send</pre>
+        <p>The <code>X-Agent-Purpose</code> header travels unsigned, by design — same as
+          <code>X-Demo-Agent-Claim</code> in Demo 1. Add it to the request with your
+          HTTP client of choice alongside the signature headers the script prints.</p>
+      </section>
+
+    </main>
+  </div>
+
+  <footer>
+    &copy; 2025–2026 ElevIQ. &nbsp;·&nbsp; <a href="https://eleviq.solutions">eleviq.solutions</a>
+    &nbsp;·&nbsp; <a href="../">ElevIQ Lab</a>
+  </footer>
+
+  <script type="module" src="../assets/decide.js"></script>
+</body>
+</html>

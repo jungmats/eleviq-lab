@@ -29,9 +29,9 @@ cross-origin. Nothing is simulated — real Ed25519 signing and verification.
 | Demo | | |
 |---|---|---|
 | **1 · Identify** | agent identity via Web Bot Auth | ✅ built — `/identity/` |
-| 2 · Decide | policy-based access / refusal | planned |
+| **2 · Decide** | policy-based access / refusal | ✅ built — `/decide/` |
 | 3 · Charge | HTTP 402 · Pay Per Crawl · x402 | planned |
-| 4 · Measure | attribution dashboard | planned |
+| **4 · Measure** | attribution dashboards | ✅ built — `/measure/` (Demo 1's log) + `insights.eleviq.solutions` (site traffic, behind Cloudflare Access) |
 
 See [`PLAN.md`](PLAN.md).
 
@@ -43,6 +43,9 @@ See [`PLAN.md`](PLAN.md).
 | `GET /.well-known/http-message-signatures-directory` | the trusted public keys (currently one: "ElevIQ Lab demo agent") |
 | `GET /api/identity/price-list` | the protected resource — `200` for a verified agent, else `401` + how-to-authenticate |
 | `POST /api/sign` | **test aid** — signs with a demo key so you can try the verified path with just curl. Not part of the security model. |
+| `GET /robots.txt` | Demo 2's STATED policy — real robots.txt Content Signals for `/api/decide/deal-notes` |
+| `GET /.well-known/rsl.xml` | Demo 2's STATED policy — a real, spec-shaped RSL license for the same resource |
+| `GET /api/decide/deal-notes` | Demo 2's protected resource — `200` for a verified agent declaring a permitted `X-Agent-Purpose`, else `403` + why (or `401` if unverified) |
 
 Trust is a single throwaway key — no OpenAI/Anthropic/etc. impersonation. The
 console's "claimed identity" dropdown only sets an unverified claim
@@ -52,10 +55,11 @@ trustworthy" for what a real deployment adds (a secret key + a vetted registry).
 
 ## Access log
 
-Every request to `/api/identity/price-list` is logged to D1 (`access_log`
-table, see `gateway/schema.sql`) — timestamp, path, outcome, status, the
-verified key/agent if any, and the claimed identity. Foundation for Demo 4
-(Measure); no dashboard yet. Inspect it with:
+Every request to `/api/identity/price-list` and `/api/decide/deal-notes` is
+logged to D1 (`access_log` table, see `gateway/schema.sql`) — timestamp, path,
+outcome, status, the verified key/agent if any, the claimed identity, and (for
+Demo 2 only) the declared purpose and policy decision. Backs the `/measure/`
+dashboard. Inspect it directly with:
 
 ```bash
 npx wrangler d1 execute eleviq-lab-log --config gateway/wrangler.toml --remote \
@@ -83,15 +87,17 @@ npm run dev:site       # static site at http://localhost:8000 (console auto-targ
 docs/                        static site → GitHub Pages
   index.html                 lab landing page
   identity/index.html        Demo 1 page  (<meta name="gateway"> sets the gateway URL)
+  decide/index.html          Demo 2 page
   assets/console.js          Demo 1 console — signs in-browser, calls the gateway
+  assets/decide.js           Demo 2 console — same identity, varies declared purpose
   assets/agent-sign.js       generated: web-bot-auth bundled for the browser (committed)
   reference/                 sign-request.mjs + README + demo keys (keys generated, committed)
   CNAME                      lab.eleviq.solutions
 gateway/                     the gateway Worker → Cloudflare
   wrangler.toml
   src/index.ts               router (fetch handler)
-  src/routes/                directory · price-list · sign
-  src/lib/                   verify · keys · http
+  src/routes/                directory · price-list · sign · deal-notes · robots · license
+  src/lib/                   verify · keys · http · policy · rsl
   keys/                      committed DEMO keypairs (source of truth)
 build/bundle.mjs             esbuild step for the browser bundle
 scripts/gen-keys.mjs         regenerate the demo keypairs

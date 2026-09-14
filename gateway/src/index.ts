@@ -17,7 +17,13 @@
  * Demo 4 — Measure (Part A, agent access only; Part B lives on eleviq.solutions):
  *   GET  /api/log                                       access_log summary + recent rows
  *
- * Later: policy (Decide), HTTP 402 (Charge).
+ * Demo 2 — Decide (policy, keyed on a declared purpose, not identity again):
+ *   GET  /robots.txt                                    STATED policy: Content Signals
+ *   GET  /.well-known/rsl.xml                            STATED policy: RSL license
+ *   GET  /api/decide/deal-notes                          the protected resource; ENFORCED
+ *                                                        decision, live
+ *
+ * Later: HTTP 402 (Charge).
  *
  * The demo site that explains and drives this lives separately, on GitHub Pages
  * at https://lab.eleviq.solutions
@@ -27,10 +33,13 @@ import { handlePriceList } from "./routes/price-list";
 import { handleSign } from "./routes/sign";
 import { handleDebugCf } from "./routes/debug";
 import { handleLog } from "./routes/log";
+import { handleDealNotes } from "./routes/deal-notes";
+import { handleRobotsTxt } from "./routes/robots";
+import { handleLicense } from "./routes/license";
 import { json, preflight } from "./lib/http";
 import type { Env } from "./lib/env";
 
-const VERSION = "2026-09-10-demo1";
+const VERSION = "2026-09-14-demo2";
 const SITE = "https://lab.eleviq.solutions";
 
 export default {
@@ -68,6 +77,15 @@ async function route(request: Request, path: string, url: URL, env: Env, ctx: Ex
   if (path === "/api/log" && request.method === "GET") {
     return handleLog(env);
   }
+  if (path === "/robots.txt" && request.method === "GET") {
+    return handleRobotsTxt(request);
+  }
+  if (path === "/.well-known/rsl.xml" && request.method === "GET") {
+    return handleLicense(request);
+  }
+  if (path === "/api/decide/deal-notes" && request.method === "GET") {
+    return handleDealNotes(request, env, ctx);
+  }
 
   return json(
     {
@@ -79,6 +97,9 @@ async function route(request: Request, path: string, url: URL, env: Env, ctx: Ex
         "/api/sign",
         "/api/debug/cf",
         "/api/log",
+        "/robots.txt",
+        "/.well-known/rsl.xml",
+        "/api/decide/deal-notes",
       ],
     },
     404,
@@ -98,6 +119,9 @@ function info(url: URL) {
       test_helper: `${url.origin}/api/sign — POST {"url": "…/api/identity/price-list"}; signs with a demo key so you can try the verified path with curl`,
       debug_cf: `${url.origin}/api/debug/cf — GET; Cloudflare's own heuristic edge signals for your request (not cryptographic, not used for any decision here)`,
       access_log: `${url.origin}/api/log — GET; summary + last 100 rows of every request to /api/identity/price-list`,
+      robots_txt: `${url.origin}/robots.txt — GET; the STATED Content Signals policy for /api/decide/deal-notes`,
+      rsl_license: `${url.origin}/.well-known/rsl.xml — GET; the STATED RSL license for /api/decide/deal-notes`,
+      decide_resource: `${url.origin}/api/decide/deal-notes — GET; 200 for a verified agent declaring a permitted purpose (X-Agent-Purpose), else 403 + why`,
     },
     reference: `${SITE}/reference/`,
   });

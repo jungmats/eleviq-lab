@@ -18,7 +18,10 @@ CREATE TABLE IF NOT EXISTS access_log (
   agent_name     TEXT,               -- verified agent name, if verified
   agent_operator TEXT,               -- verified operator, if verified
   claimed_ua     TEXT,               -- the unverified User-Agent / X-Demo-Agent-Claim
-  trust_tier     TEXT                -- "own" | "registry:<origin>", if verified
+  trust_tier     TEXT,               -- "own" | "registry:<origin>", if verified
+  purpose         TEXT,              -- declared purpose (X-Agent-Purpose), Demo 2 only
+  policy_decision TEXT,              -- "allow" | "deny", Demo 2 only
+  policy_reason   TEXT               -- "purpose-prohibited" | "purpose-undeclared", Demo 2 only
 );
 
 CREATE INDEX IF NOT EXISTS access_log_ts ON access_log (ts DESC);
@@ -26,3 +29,9 @@ CREATE INDEX IF NOT EXISTS access_log_ts ON access_log (ts DESC);
 -- Migration for a database created before trust_tier existed (2026-09-11):
 --   npx wrangler d1 execute eleviq-lab-log --local  --command "ALTER TABLE access_log ADD COLUMN trust_tier TEXT"
 --   npx wrangler d1 execute eleviq-lab-log --remote --command "ALTER TABLE access_log ADD COLUMN trust_tier TEXT"
+
+-- Migration for a database created before Demo 2 / Decide (2026-09-14):
+--   npx wrangler d1 execute eleviq-lab-log --local  --command "ALTER TABLE access_log ADD COLUMN purpose TEXT"
+--   npx wrangler d1 execute eleviq-lab-log --local  --command "ALTER TABLE access_log ADD COLUMN policy_decision TEXT"
+--   npx wrangler d1 execute eleviq-lab-log --local  --command "ALTER TABLE access_log ADD COLUMN policy_reason TEXT"
+--   (repeat all three with --remote for the deployed database)

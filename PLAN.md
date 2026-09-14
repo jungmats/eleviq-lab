@@ -1,3 +1,118 @@
+# ElevIQ Lab — Demo 2 (Decide)
+
+**Status (2026-09-14): built and verified locally (headless-browser + curl),
+not yet deployed.** Demo 1 answered "is this really who it says it is?" Demo 2
+answers "now that it's verified — is it actually allowed to do this?"
+
+**The story.** A resource owner publishes a policy in the two places a
+well-behaved agent is supposed to check before acting: `robots.txt` (the
+emerging Content Signals extension — short per-use yes/no signals) and an RSL
+license file robots.txt can point to for more detail. The demo's point:
+**declaring a policy and enforcing one are different things.** A visitor picks
+what purpose the (already-trusted) agent declares and watches a real, live
+gateway decision — not page copy — prove that publishing a policy protects
+nothing by itself; only enforcement does.
+
+**Decisions made (agreed with the user before building):**
+- No payment/402 preview in this demo — strictly allow/deny. Charge is Demo
+  3's territory.
+- A new, self-contained protected resource — "Q3 competitive deal-margin
+  notes" (`GET /api/decide/deal-notes`) — not Demo 1's price list.
+- Identity is fixed here: every request signs with the same trusted
+  demo-agent key as Demo 1. The only varying axis is **declared purpose**,
+  sent as a genuine `X-Agent-Purpose` request header — this lab's own
+  convention (not a ratified standard), reusing the exact vocabulary
+  (`search` / `ai-input` / `ai-train`) Content Signals and RSL already share.
+- Exactly 3 scenarios: `ai-input` (stated-permitted) → `200`; `ai-train`
+  (stated-prohibited) → live `403`, same trusted identity as the allowed
+  case, only the declared purpose differs; no purpose declared → `403`
+  default-deny (`purpose-undeclared`) — a **deliberate divergence** from the
+  real Content Signals spec, which treats an absent signal as neutral. This
+  gateway's enforcement is stricter than the advisory declaration, on
+  purpose, and the page states this explicitly.
+- **Single source of truth**: one policy data object (`gateway/src/lib/
+  policy.ts`) drives the served `/robots.txt` line, the served
+  `/.well-known/rsl.xml` file, *and* the enforcement decision — `decide()`
+  parses the exact XML the gateway itself serves, rather than reading the
+  data object directly, so the decision is provably reading the same
+  document a fetcher would receive. Stated and enforced can't drift apart by
+  construction; the teaching point is that declaring doesn't enforce, not
+  that the two disagree.
+- RSL fidelity: a real, spec-shaped `<license>` XML document
+  (`gateway/src/lib/rsl.ts`), built and parsed with genuine (if minimal) XML
+  parsing (`fast-xml-parser`) — not a JSON stand-in. Narrow scope: only the
+  `<permits>`/`<prohibits type="usage">` vocabulary this demo needs, not
+  RSL's full surface (payment terms, other permission types, etc).
+- No canonical path is mandated by the RSL spec for the license file itself;
+  `/.well-known/rsl.xml` was chosen to match this gateway's existing
+  `.well-known` convention (the Web Bot Auth key directory), and the page
+  says so explicitly rather than implying the spec requires it.
+- Parked for later, not built now: a reusable visual **policy editor**
+  component (a form generating the robots.txt lines + RSL XML) — see "Later"
+  below.
+
+**Bug caught during verification, fixed before calling it done:** the RSL
+parser (`gateway/src/lib/rsl.ts`) initially read `<permits type="usage">…
+</permits>`'s text content as a plain string, but `fast-xml-parser` returns
+`{ "@_type": "usage", "#text": "…" }` for any element that has both an
+attribute and text — so `prohibits` silently parsed to an empty array and
+**every declared purpose, including `ai-train`, was allowed**. Caught by
+testing the real `ai-train` request end-to-end (not by re-reading the code) —
+the `200` response instead of the expected `403` was the tell. Fixed by
+reading through `#text` when present; re-verified `ai-train` → `403
+purpose-prohibited` afterward.
+
+**Verified (local, headless Chromium + curl against `wrangler dev`), not just
+that the markup renders:**
+- `GET /robots.txt` → the real `Content-Signal: search=yes, ai-input=yes,
+  ai-train=no` line + a `License:` pointer, fetched and displayed live in the
+  page's own "Stated vs enforced" panel (not hardcoded page text).
+- `GET /.well-known/rsl.xml` → well-formed RSL XML, same live-fetched
+  treatment.
+- Signed `ai-input` → `200` + full deal notes. Signed `ai-train` (same key,
+  fresh signature) → `403 purpose-prohibited`, `verified` facts still present
+  (identity succeeded; only policy denied). No `X-Agent-Purpose` header at
+  all → `403 purpose-undeclared`. All three reproduced in a real headless
+  browser via the actual console UI (`?send=ai-input|ai-train|undeclared`),
+  correct verdict color/status/facts each time, screenshotted in both light
+  and dark mode.
+- Nonce replay protection (built for Demo 1) applies here too, unprompted —
+  replaying the same signed request across scenarios correctly hit `401
+  replayed` on reuse, confirming each scenario needs its own fresh signature
+  (expected behavior, not a bug).
+- CORS preflight (`OPTIONS` with `Access-Control-Request-Headers:
+  x-agent-purpose`) returns the new header in `access-control-allow-headers`
+  — confirmed before relying on the browser console to prove it.
+- `access_log`'s three new nullable columns (`purpose`, `policy_decision`,
+  `policy_reason`) added via the same inline-`ALTER TABLE` convention as
+  `trust_tier`; Demo 1 rows unaffected (columns read `null`).
+
+**Files touched:** `gateway/src/lib/policy.ts` + `rsl.ts` (new),
+`gateway/src/routes/deal-notes.ts` + `robots.ts` + `license.ts` (new),
+`gateway/src/index.ts` (routing, `VERSION` bump, endpoint lists),
+`gateway/src/lib/http.ts` (`X-Agent-Purpose` CORS allow-header, new `text()`
+helper), `gateway/src/lib/log.ts` + `gateway/schema.sql` (new columns),
+`docs/decide/index.html` + `docs/assets/decide.js` (new), `docs/index.html`
+(landing card flipped to live), `package.json` (`fast-xml-parser` dependency).
+
+**Two rounds of copy review from the user, applied:** resource renamed from
+"Q3 competitive deal-margin notes" to plainer **Q3 sales notes** (unbolded);
+jargon and fuzzy phrasing cut throughout §1–§3 (no more "declaring is
+advisory, only enforcement is real"-style sentences); RSL spelled out
+(Really Simple Licensing) with a one-line explanation before first use;
+Content Signals explained inline instead of assumed. Second round caught two
+real defects: the "Content Signals" link
+(`developers.cloudflare.com/bots/additional-configurations/content-signals/`)
+404s — replaced with the canonical `contentsignals.org`; and the demo's own
+`/robots.txt` used a paraphrased explanation instead of the real Content
+Signals Policy boilerplate (verbatim, CC0-licensed text that real sites
+like `niaaa.nih.gov` actually serve) — replaced with the verbatim canonical
+text so the fixture reads like a genuine implementation, not an
+approximation of one.
+
+**Not yet done:** deploy to the live gateway/site, and the remote-D1
+migration — pending the user's go-ahead (deploying is outward-facing).
+
 # ElevIQ Lab — Demo 1 (Identify) + Demo 4 (Measure: part A lab, part B site)
 
 **eleviq.solutions DNS migration: done.** Nameservers on Cloudflare, mail
@@ -94,6 +209,23 @@ labeled "Behind login"), each with a one-line description of what it shows.
 New `.measure-link` styles in `lab.css`. Verified: `measure/` → `200`,
 `insights.eleviq.solutions` → `302` to the real Access login page — not
 just checking the markup renders.
+**Two rendering bugs the user caught on a local `file://` open, fixed and
+actually verified in a real headless browser (Playwright/Chromium
+installed for this) rather than by re-reading markup:** (1) the secondary
+button had no rounded corners, was underlined, and overlapped the line
+above — cause: `a.button-secondary` in `styles.css` is a *modifier* class
+meant to be combined with `button` (`class="button button-secondary"`),
+not used standalone; it only overrides color/border/background and relies
+on `a.button` for `display: inline-block`, `border-radius`, `text-decoration:
+none`. Fixed by adding the base class. (2) the button's background still
+read as "white" after that fix — confirmed via computed-style inspection
+this was `rgba(0,0,0,0)` (correctly transparent, the CSS was right), just
+the white `.section` card showing through, identical to the rest of the
+card — a legitimate but visually flat "outline button" look sitting right
+under a solid one. Gave it a subtle fill (`var(--code-bg)`) scoped to
+`.measure-link .button-secondary` only, so the site's reusable
+`button-secondary` style elsewhere is untouched. Screenshotted both light
+and dark mode to confirm.
 
 **Two real fixes from the user's first look at real data:**
 - **"80% unrecognized" turned out to be a labeling confusion, not real
@@ -227,7 +359,7 @@ Since initial deploy:
   from replay: this is about the claim never being signed data at all, not
   about reuse.
 
-Next: Demo 2 — Decide.
+Demo 2 — Decide is now built too (see the top of this file). Next: Demo 3 — Charge.
 
 ## Context
 
@@ -518,8 +650,10 @@ confirmed — ChatGPT Work yes, consumer ChatGPT no).
 ## Later (not this plan)
 
 - Scenarios `expired` + `tampered`.
-- Demo 2 — Decide: policy engine, 403/402, robots.txt Content Signals + RSL "stated vs
-  enforced" contrast.
 - Demo 3 — Charge: Pay Per Crawl walkthrough + real x402 (testnet USDC on Base).
-- Demo 4 — Measure: attribution dashboard (Workers Analytics Engine, AI-referral tracking).
+- A reusable visual **policy editor** component — a form generating the
+  robots.txt Content-Signal lines + RSL license XML from structured input
+  (which uses are allowed, which need payment, which are refused). Raised
+  while designing Demo 2; genuinely useful for ElevIQ's client work, not
+  needed for the demo itself (which uses one hand-authored policy fixture).
 - MCP endpoint (`fetch_as_agent`), custom domain `lab.eleviq.solutions`, DNS move to Cloudflare.
