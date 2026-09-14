@@ -1,3 +1,13 @@
+# ElevIQ Lab — Demo 3 (Delegate)
+
+Built 2026-09-14, simulated version: `/delegate/`, `POST
+/api/delegate/request-code` + `GET /api/delegate/account`. Proves an agent is
+acting for a specific email via a one-time code — code is returned in the API
+response (not emailed) for now, clearly labeled DEMO. Real email sending +
+rate-limiting is a deliberate later step (first real secret this lab needs).
+New KV (`DELEGATION_CODES`) + two `access_log` columns (`acting_for`,
+`delegation_outcome`). Not yet deployed.
+
 # ElevIQ Lab — Demo 2 (Decide)
 
 **Status (2026-09-14): deployed and live at `https://lab.eleviq.solutions/decide/`.**

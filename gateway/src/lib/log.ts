@@ -23,12 +23,16 @@ export interface AccessLogEntry {
   policyDecision?: "allow" | "deny" | null;
   /** Demo 2 (Decide) only — why the policy engine denied, if it did. */
   policyReason?: "purpose-prohibited" | "purpose-undeclared" | null;
+  /** Demo 3 (Delegate) only — the claimed X-Acting-For email, if any. */
+  actingFor?: string | null;
+  /** Demo 3 (Delegate) only — the delegation check's outcome. */
+  delegationOutcome?: "granted" | "no-code" | "invalid-code" | null;
 }
 
 export function logAccess(env: Env, ctx: ExecutionContext, entry: AccessLogEntry): void {
   const write = env.DB.prepare(
-    `INSERT INTO access_log (ts, path, outcome, status, keyid, agent_name, agent_operator, claimed_ua, trust_tier, purpose, policy_decision, policy_reason)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO access_log (ts, path, outcome, status, keyid, agent_name, agent_operator, claimed_ua, trust_tier, purpose, policy_decision, policy_reason, acting_for, delegation_outcome)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   ).bind(
     new Date().toISOString(),
     entry.path,
@@ -42,6 +46,8 @@ export function logAccess(env: Env, ctx: ExecutionContext, entry: AccessLogEntry
     entry.purpose ?? null,
     entry.policyDecision ?? null,
     entry.policyReason ?? null,
+    entry.actingFor ?? null,
+    entry.delegationOutcome ?? null,
   );
 
   // Never let a logging failure affect the response.

@@ -22,6 +22,12 @@
  *   GET  /api/decide/deal-notes                          the protected resource; ENFORCED
  *                                                        decision, live
  *
+ * Demo 3 — Delegate (is this agent acting for a specific person?):
+ *   POST /api/delegate/request-code                      SIMULATED — returns a code that a
+ *                                                        real deployment would email instead
+ *   GET  /api/delegate/account                            the protected resource; needs a
+ *                                                        valid code for the claimed email
+ *
  * Later: HTTP 402 (Charge).
  *
  * The demo site that explains and drives this lives separately, on GitHub Pages
@@ -34,10 +40,12 @@ import { handleDebugCf } from "./routes/debug";
 import { handleLog } from "./routes/log";
 import { handleDealNotes } from "./routes/deal-notes";
 import { handleLicense } from "./routes/license";
+import { handleRequestCode } from "./routes/delegate-request-code";
+import { handleAccount } from "./routes/delegate-account";
 import { json, preflight } from "./lib/http";
 import type { Env } from "./lib/env";
 
-const VERSION = "2026-09-14-demo2";
+const VERSION = "2026-09-14-demo3";
 const SITE = "https://lab.eleviq.solutions";
 
 export default {
@@ -81,6 +89,12 @@ async function route(request: Request, path: string, url: URL, env: Env, ctx: Ex
   if (path === "/api/decide/deal-notes" && request.method === "GET") {
     return handleDealNotes(request, env, ctx);
   }
+  if (path === "/api/delegate/request-code" && request.method === "POST") {
+    return handleRequestCode(request, env);
+  }
+  if (path === "/api/delegate/account" && request.method === "GET") {
+    return handleAccount(request, env, ctx);
+  }
 
   return json(
     {
@@ -94,6 +108,8 @@ async function route(request: Request, path: string, url: URL, env: Env, ctx: Ex
         "/api/log",
         "/.well-known/rsl.xml",
         "/api/decide/deal-notes",
+        "/api/delegate/request-code",
+        "/api/delegate/account",
       ],
     },
     404,
@@ -115,6 +131,8 @@ function info(url: URL) {
       access_log: `${url.origin}/api/log — GET; summary + last 100 rows of every request to /api/identity/price-list`,
       rsl_license: `${url.origin}/.well-known/rsl.xml — GET; the STATED RSL license for /api/decide/deal-notes`,
       decide_resource: `${url.origin}/api/decide/deal-notes — GET; 200 for a verified agent declaring a permitted purpose (X-Agent-Purpose), else 403 + why`,
+      delegate_request_code: `${url.origin}/api/delegate/request-code — POST {"acting_for": "email"}; SIMULATED, returns a code a real deployment would email instead`,
+      delegate_resource: `${url.origin}/api/delegate/account — GET; 200 with a valid code for the claimed email (X-Acting-For, X-Delegation-Code), else 401/403`,
     },
     reference: `${SITE}/reference/`,
   });

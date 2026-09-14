@@ -2,4 +2,5 @@
 export interface Env {
   DB: D1Database;
   NONCES: KVNamespace;
+  DELEGATION_CODES: KVNamespace;
 }

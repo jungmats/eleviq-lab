@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="gateway" content="https://eleviq-lab-gateway.gateway-worker.workers.dev">
+  <title>Delegate — ElevIQ Lab</title>
+  <link rel="icon" href="../assets/eleviq_icon.png">
+  <link rel="stylesheet" href="../styles.css">
+  <link rel="stylesheet" href="../lab.css">
+</head>
+<body>
+
+  <header>
+    <a href="https://eleviq.solutions"><img src="../assets/eleviq_logo_v1.6.png" alt="ElevIQ Logo"></a>
+    <p class="brand-line">ElevIQ Lab</p>
+    <p><b>Delegate — acting for a person</b></p>
+    <p class="lab-crumbs"><a href="../">Lab home</a> &nbsp;·&nbsp; Demo 3 of 6 &nbsp;·&nbsp; Delegate</p>
+  </header>
+
+  <div class="container wide">
+    <main>
+
+      <section class="section step">
+        <h2><span class="step-n">1</span> The problem</h2>
+        <p>Demo 1 proved a specific key signed this request. Demo 2 proved that key is
+          allowed to do this. Neither proves <i>who the request is for</i> — a fully
+          verified, fully permitted agent can still be lying about which person it claims
+          to act on behalf of.</p>
+        <p>This lab's answer, pragmatic rather than complete (OAuth can come later): a
+          one-time code. An agent claiming to act for a specific email address only gets
+          access once it presents a code sent to that address — proof of an inbox, not
+          proof that an email address was typed correctly.</p>
+        <p class="unlisted-note">This demo <b>simulates</b> the email step: the code
+          appears directly on this page instead of being sent anywhere, so the mechanism
+          is visible without needing a real inbox. A real deployment would only ever email
+          it.</p>
+      </section>
+
+      <section class="section step">
+        <h2><span class="step-n">2</span> The demo</h2>
+
+        <div class="agent-callout">
+          Identity is still the same trusted key as Demo 1 and 2. What's new: the agent
+          must also present a one-time code proving it's genuinely acting for the email it
+          claims — not just naming one.
+        </div>
+
+        <p class="step-lead">The agent requests a protected resource — a specific
+          partner's own <b>reseller account statement</b> (Demo 1 showed the public price
+          tiers; this is one partner's private detail).</p>
+
+        <div class="console">
+          <div class="console-controls">
+            <div class="control-row">
+              <span class="label">1 — Who is the agent acting for?</span>
+              <input type="text" id="acting-for" value="jane@example.com">
+            </div>
+
+            <div class="control-row">
+              <span class="label">2 — Get a one-time code</span>
+              <button class="send-btn" id="get-code">Request code →</button>
+              <p class="hint" id="code-result"></p>
+            </div>
+
+            <div class="control-row">
+              <span class="label">3 — What does the agent present?</span>
+              <div class="scenario" id="scenario">
+                <label>
+                  <input type="radio" name="scenario" value="correct" checked>
+                  <span>
+                    <span class="s-name">The correct code</span><br>
+                    <span class="s-desc">Requests a fresh code for the email above and presents it.</span>
+                  </span>
+                </label>
+                <label>
+                  <input type="radio" name="scenario" value="wrong">
+                  <span>
+                    <span class="s-name">A wrong code</span><br>
+                    <span class="s-desc">Claims the email, makes up a code.</span>
+                  </span>
+                </label>
+                <label>
+                  <input type="radio" name="scenario" value="none">
+                  <span>
+                    <span class="s-name">No code</span><br>
+                    <span class="s-desc">Claims the email, presents nothing — what an unverified claim looks like.</span>
+                  </span>
+                </label>
+              </div>
+            </div>
+
+            <button class="send-btn" id="send">Send request →</button>
+          </div>
+
+          <div class="exchange">
+            <div class="req">
+              <p class="pane-title">What the agent sent</p>
+              <pre class="wire" id="req-wire">Press “Send request” to make the call.</pre>
+              <button class="copy-curl" id="copy-curl" hidden>Copy as curl</button>
+            </div>
+            <div class="res">
+              <p class="pane-title">What the server did</p>
+              <div class="verdict" id="verdict">
+                <div class="status">— Awaiting request</div>
+                <p class="reason">No request sent yet.</p>
+                <dl class="facts" id="facts" hidden></dl>
+              </div>
+            </div>
+          </div>
+
+          <div class="response-body">
+            <p class="pane-title">Response body</p>
+            <pre class="wire" id="res-body">—</pre>
+          </div>
+        </div>
+
+        <div class="log">
+          <span class="label">Request log</span>
+          <ol id="log"></ol>
+        </div>
+        <p class="hint">That list is only in your browser — it disappears on refresh.
+          Every request here is also logged server-side: see the
+          <a href="../measure/">agent access dashboard</a>.</p>
+      </section>
+
+      <section class="section step">
+        <h2><span class="step-n">3</span> Test it from your own tools</h2>
+        <p>The console above is a convenience. The gateway is a plain public HTTP API —
+          two calls, same signed identity as Demo 1 on both.</p>
+
+        <h3>A — Request a code</h3>
+        <pre class="wire"># sign this the same way as /api/sign in Demo 1
+curl -s -X POST https://eleviq-lab-gateway.gateway-worker.workers.dev/api/delegate/request-code \
+  -H 'Signature-Input: …' -H 'Signature: …' -H 'Signature-Agent: …' \
+  -H 'content-type: application/json' \
+  -d '{"acting_for":"jane@example.com"}'</pre>
+        <p>Returns the code directly — <b>DEMO only</b>; a real deployment would email it
+          and never put it in this response.</p>
+
+        <h3>B — Present it</h3>
+        <pre class="wire">curl -i https://eleviq-lab-gateway.gateway-worker.workers.dev/api/delegate/account \
+  -H 'Signature-Input: …' -H 'Signature: …' -H 'Signature-Agent: …' \
+  -H 'X-Acting-For: jane@example.com' -H 'X-Delegation-Code: 482913'</pre>
+        <p>Drop <code>X-Delegation-Code</code>, or change one digit, to see the other two
+          outcomes. Codes are single-use and expire after 5 minutes.</p>
+
+        <h3>C — Ask an AI assistant with real email access</h3>
+        <pre class="wire">Fetch https://eleviq-lab-gateway.gateway-worker.workers.dev/, sign a
+request to /api/delegate/request-code for my own email address, check
+your connected inbox for the code (there won't be one — this demo
+never actually sends it), then explain what a real version would do.</pre>
+        <p>The genuinely compelling version of this test needs a real emailed code and an
+          assistant with inbox access — completing the loop itself, unattended. Not built
+          yet; see the note in section 1.</p>
+      </section>
+
+    </main>
+  </div>
+
+  <footer>
+    &copy; 2025–2026 ElevIQ. &nbsp;·&nbsp; <a href="https://eleviq.solutions">eleviq.solutions</a>
+    &nbsp;·&nbsp; <a href="../">ElevIQ Lab</a>
+  </footer>
+
+  <script type="module" src="../assets/delegate.js"></script>
+</body>
+</html>

@@ -21,7 +21,9 @@ CREATE TABLE IF NOT EXISTS access_log (
   trust_tier     TEXT,               -- "own" | "registry:<origin>", if verified
   purpose         TEXT,              -- declared purpose (X-Agent-Purpose), Demo 2 only
   policy_decision TEXT,              -- "allow" | "deny", Demo 2 only
-  policy_reason   TEXT               -- "purpose-prohibited" | "purpose-undeclared", Demo 2 only
+  policy_reason   TEXT,              -- "purpose-prohibited" | "purpose-undeclared", Demo 2 only
+  acting_for        TEXT,            -- claimed email (X-Acting-For), Demo 3 only
+  delegation_outcome TEXT            -- "granted" | "no-code" | "invalid-code", Demo 3 only
 );
 
 CREATE INDEX IF NOT EXISTS access_log_ts ON access_log (ts DESC);
@@ -35,3 +37,8 @@ CREATE INDEX IF NOT EXISTS access_log_ts ON access_log (ts DESC);
 --   npx wrangler d1 execute eleviq-lab-log --local  --command "ALTER TABLE access_log ADD COLUMN policy_decision TEXT"
 --   npx wrangler d1 execute eleviq-lab-log --local  --command "ALTER TABLE access_log ADD COLUMN policy_reason TEXT"
 --   (repeat all three with --remote for the deployed database)
+
+-- Migration for a database created before Demo 3 / Delegate (2026-09-14):
+--   npx wrangler d1 execute eleviq-lab-log --local  --command "ALTER TABLE access_log ADD COLUMN acting_for TEXT"
+--   npx wrangler d1 execute eleviq-lab-log --local  --command "ALTER TABLE access_log ADD COLUMN delegation_outcome TEXT"
+--   (repeat both with --remote for the deployed database)

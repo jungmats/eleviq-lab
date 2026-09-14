@@ -30,7 +30,7 @@ cross-origin. Nothing is simulated — real Ed25519 signing and verification.
 |---|---|---|
 | **1 · Identify** | agent identity via Web Bot Auth | ✅ built — `/identity/` |
 | **2 · Decide** | policy-based access / refusal | ✅ built — `/decide/` |
-| 3 · Delegate | agent acting on behalf of a user (email code) | planned |
+| **3 · Delegate** | agent acting on behalf of a user (email code, simulated) | ✅ built — `/delegate/` |
 | 4 · Charge | HTTP 402 · Pay Per Crawl · x402 | planned |
 | **5 · Measure** | attribution dashboards | ✅ built — `/measure/` (Demo 1's log) + `insights.eleviq.solutions` (site traffic, behind Cloudflare Access) |
 | 6 · Sustain | post-ad monetization — scope tbd, likely several demos | planned |
@@ -47,6 +47,8 @@ See [`PLAN.md`](PLAN.md).
 | `POST /api/sign` | **test aid** — signs with a demo key so you can try the verified path with just curl. Not part of the security model. |
 | `GET /.well-known/rsl.xml` | Demo 2's STATED policy — a real, spec-shaped RSL license for `/api/decide/deal-notes` |
 | `GET /api/decide/deal-notes` | Demo 2's protected resource — `200` for a verified agent declaring a permitted `X-Agent-Purpose`, else `403` + why (or `401` if unverified) |
+| `POST /api/delegate/request-code` | Demo 3 — SIMULATED, returns a one-time code a real deployment would email instead |
+| `GET /api/delegate/account` | Demo 3's protected resource — `200` with a valid code for the claimed email (`X-Acting-For`, `X-Delegation-Code`), else `401`/`403` |
 
 Trust is a single throwaway key — no OpenAI/Anthropic/etc. impersonation. The
 console's "claimed identity" dropdown only sets an unverified claim
@@ -97,8 +99,9 @@ docs/                        static site → GitHub Pages
 gateway/                     the gateway Worker → Cloudflare
   wrangler.toml
   src/index.ts               router (fetch handler)
-  src/routes/                directory · price-list · sign · deal-notes · license
-  src/lib/                   verify · keys · http · policy · rsl
+  src/routes/                directory · price-list · sign · deal-notes · license ·
+                             delegate-request-code · delegate-account
+  src/lib/                   verify · keys · http · policy · rsl · delegation
   keys/                      committed DEMO keypairs (source of truth)
 build/bundle.mjs             esbuild step for the browser bundle
 scripts/gen-keys.mjs         regenerate the demo keypairs

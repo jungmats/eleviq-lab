@@ -29,3 +29,9 @@ database_id = "861ffec1-ad63-444f-8b61-e5a4bdc91edd"
 [[kv_namespaces]]
 binding = "NONCES"
 id = "7cf4d6ff9a28415aa443a9426a513178"
+
+# Demo 3 (Delegate): one-time codes proving an agent is acting for a specific
+# email, TTL'd and single-use, same shape as NONCES above.
+[[kv_namespaces]]
+binding = "DELEGATION_CODES"
+id = "f9e4cafcbe4d40839e2cb2ac868e9ffe"
