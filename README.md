@@ -43,8 +43,7 @@ See [`PLAN.md`](PLAN.md).
 | `GET /.well-known/http-message-signatures-directory` | the trusted public keys (currently one: "ElevIQ Lab demo agent") |
 | `GET /api/identity/price-list` | the protected resource — `200` for a verified agent, else `401` + how-to-authenticate |
 | `POST /api/sign` | **test aid** — signs with a demo key so you can try the verified path with just curl. Not part of the security model. |
-| `GET /robots.txt` | Demo 2's STATED policy — real robots.txt Content Signals for `/api/decide/deal-notes` |
-| `GET /.well-known/rsl.xml` | Demo 2's STATED policy — a real, spec-shaped RSL license for the same resource |
+| `GET /.well-known/rsl.xml` | Demo 2's STATED policy — a real, spec-shaped RSL license for `/api/decide/deal-notes` |
 | `GET /api/decide/deal-notes` | Demo 2's protected resource — `200` for a verified agent declaring a permitted `X-Agent-Purpose`, else `403` + why (or `401` if unverified) |
 
 Trust is a single throwaway key — no OpenAI/Anthropic/etc. impersonation. The
@@ -96,7 +95,7 @@ docs/                        static site → GitHub Pages
 gateway/                     the gateway Worker → Cloudflare
   wrangler.toml
   src/index.ts               router (fetch handler)
-  src/routes/                directory · price-list · sign · deal-notes · robots · license
+  src/routes/                directory · price-list · sign · deal-notes · license
   src/lib/                   verify · keys · http · policy · rsl
   keys/                      committed DEMO keypairs (source of truth)
 build/bundle.mjs             esbuild step for the browser bundle

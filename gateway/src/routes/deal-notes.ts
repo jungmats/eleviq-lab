@@ -128,12 +128,11 @@ export async function handleDealNotes(request: Request, env: Env, ctx: Execution
     detail:
       outcome.reason === "purpose-prohibited"
         ? `You are a verified, trusted agent (${verdict.agent.name}) — but you declared "${outcome.purpose}" as your purpose, and this resource's policy prohibits that use. Identity is not authorization.`
-        : `No ${PURPOSE_HEADER} header was sent. This gateway does not assume permission when intent isn't stated — stricter than the underlying Content Signals spec's own "absence is neutral" rule, by design.`,
+        : `No ${PURPOSE_HEADER} header was sent. This gateway does not assume permission when intent isn't stated.`,
     reason: outcome.reason,
     declared_purpose: outcome.purpose,
     teaser: TEASER,
     policy_reference: {
-      robots_txt: new URL("/robots.txt", request.url).toString(),
       license: new URL("/.well-known/rsl.xml", request.url).toString(),
       purpose_header: PURPOSE_HEADER,
       accepted_values: ALL_USAGE_TYPES,

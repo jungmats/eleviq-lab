@@ -4,8 +4,8 @@
  * "ElevIQ Lab demo agent" key Demo 1 uses (see console.js / agent-sign.js for
  * that story). The only thing this console varies is the DECLARED PURPOSE,
  * sent as a genuine X-Agent-Purpose request header — this lab's own
- * convention, not a ratified standard, but using the same vocabulary
- * (search / ai-input / ai-train) Content Signals and RSL already share.
+ * convention, not a ratified standard, but using RSL's own usage vocabulary
+ * (search / ai-input / ai-train).
  *
  * The gateway is a separate origin. Its URL comes from <meta name="gateway">
  * so it can be repointed without touching this file.
@@ -136,7 +136,7 @@ function interpret(purpose, httpStatus, data) {
       facts: [
         ["Declared purpose", "— (no header sent)"],
         ["Decision", "deny — purpose-undeclared"],
-        ["Note", "Stricter than the underlying spec's own “absence is neutral” rule."],
+        ["Note", "No stated intent is not treated as permission."],
       ],
     };
   }
@@ -195,12 +195,6 @@ $("send").addEventListener("click", send);
 /* ---------- stated policy panel (§3) ---------- */
 
 async function loadStatedPolicy() {
-  try {
-    const res = await fetch(GATEWAY + "/robots.txt");
-    $("stated-robots").textContent = await res.text();
-  } catch (err) {
-    $("stated-robots").textContent = `Could not fetch: ${err}`;
-  }
   try {
     const res = await fetch(GATEWAY + "/.well-known/rsl.xml");
     $("stated-rsl").textContent = await res.text();

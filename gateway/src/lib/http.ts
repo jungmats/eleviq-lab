@@ -31,8 +31,8 @@ export function preflight() {
   return new Response(null, { status: 204, headers: CORS });
 }
 
-/** Plain text (robots.txt, RSL XML) — still needs CORS so a page on another
- * origin can fetch and display it. */
+/** Plain text (e.g. the RSL XML license) — still needs CORS so a page on
+ * another origin can fetch and display it. */
 export function text(
   body: string,
   status = 200,

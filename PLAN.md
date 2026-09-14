@@ -1,17 +1,24 @@
 # ElevIQ Lab — Demo 2 (Decide)
 
 **Status (2026-09-14): built and verified locally (headless-browser + curl),
-not yet deployed.** Demo 1 answered "is this really who it says it is?" Demo 2
-answers "now that it's verified — is it actually allowed to do this?"
+not yet deployed.** Demo 1 checked whether a request carries a valid
+cryptographic signature. Demo 2 answers a different question: given a
+verified request, is it actually allowed to do a certain action, or access a
+certain resource?
 
-**The story.** A resource owner publishes a policy in the two places a
-well-behaved agent is supposed to check before acting: `robots.txt` (the
-emerging Content Signals extension — short per-use yes/no signals) and an RSL
-license file robots.txt can point to for more detail. The demo's point:
+**The story.** A resource owner publishes a policy for one specific resource
+in an RSL (Really Simple Licensing) license file. The demo's point:
 **declaring a policy and enforcing one are different things.** A visitor picks
 what purpose the (already-trusted) agent declares and watches a real, live
 gateway decision — not page copy — prove that publishing a policy protects
 nothing by itself; only enforcement does.
+
+robots.txt Content Signals were considered and **removed** after the user
+caught that they don't fit: Content Signals can only state a policy for an
+entire site, never for one resource — so they had nothing real to contribute
+to a demo about whether *this* resource allows *this* use. RSL's `<content
+url="...">` can target exactly that, and does; it's now the demo's only
+"stated" artifact. See "rounds of copy review" below for how this was found.
 
 **Decisions made (agreed with the user before building):**
 - No payment/402 preview in this demo — strictly allow/deny. Charge is Demo
@@ -21,23 +28,20 @@ nothing by itself; only enforcement does.
 - Identity is fixed here: every request signs with the same trusted
   demo-agent key as Demo 1. The only varying axis is **declared purpose**,
   sent as a genuine `X-Agent-Purpose` request header — this lab's own
-  convention (not a ratified standard), reusing the exact vocabulary
-  (`search` / `ai-input` / `ai-train`) Content Signals and RSL already share.
+  convention (not a ratified standard), reusing RSL's own usage vocabulary
+  (`search` / `ai-input` / `ai-train`).
 - Exactly 3 scenarios: `ai-input` (stated-permitted) → `200`; `ai-train`
   (stated-prohibited) → live `403`, same trusted identity as the allowed
   case, only the declared purpose differs; no purpose declared → `403`
-  default-deny (`purpose-undeclared`) — a **deliberate divergence** from the
-  real Content Signals spec, which treats an absent signal as neutral. This
-  gateway's enforcement is stricter than the advisory declaration, on
-  purpose, and the page states this explicitly.
+  default-deny (`purpose-undeclared`) — this gateway's own design choice: not
+  knowing what a request intends is not treated as permission to find out.
 - **Single source of truth**: one policy data object (`gateway/src/lib/
-  policy.ts`) drives the served `/robots.txt` line, the served
-  `/.well-known/rsl.xml` file, *and* the enforcement decision — `decide()`
-  parses the exact XML the gateway itself serves, rather than reading the
-  data object directly, so the decision is provably reading the same
-  document a fetcher would receive. Stated and enforced can't drift apart by
-  construction; the teaching point is that declaring doesn't enforce, not
-  that the two disagree.
+  policy.ts`) drives the served `/.well-known/rsl.xml` file *and* the
+  enforcement decision — `decide()` parses the exact XML the gateway itself
+  serves, rather than reading the data object directly, so the decision is
+  provably reading the same document a fetcher would receive. Stated and
+  enforced can't drift apart by construction; the teaching point is that
+  declaring doesn't enforce, not that the two disagree.
 - RSL fidelity: a real, spec-shaped `<license>` XML document
   (`gateway/src/lib/rsl.ts`), built and parsed with genuine (if minimal) XML
   parsing (`fast-xml-parser`) — not a JSON stand-in. Narrow scope: only the
@@ -64,11 +68,9 @@ purpose-prohibited` afterward.
 
 **Verified (local, headless Chromium + curl against `wrangler dev`), not just
 that the markup renders:**
-- `GET /robots.txt` → the real `Content-Signal: search=yes, ai-input=yes,
-  ai-train=no` line + a `License:` pointer, fetched and displayed live in the
-  page's own "Stated vs enforced" panel (not hardcoded page text).
-- `GET /.well-known/rsl.xml` → well-formed RSL XML, same live-fetched
-  treatment.
+- `GET /.well-known/rsl.xml` → well-formed RSL XML, fetched and displayed
+  live in the page's own "Stated vs enforced" panel (not hardcoded page
+  text).
 - Signed `ai-input` → `200` + full deal notes. Signed `ai-train` (same key,
   fresh signature) → `403 purpose-prohibited`, `verified` facts still present
   (identity succeeded; only policy denied). No `X-Agent-Purpose` header at
@@ -88,7 +90,7 @@ that the markup renders:**
   `trust_tier`; Demo 1 rows unaffected (columns read `null`).
 
 **Files touched:** `gateway/src/lib/policy.ts` + `rsl.ts` (new),
-`gateway/src/routes/deal-notes.ts` + `robots.ts` + `license.ts` (new),
+`gateway/src/routes/deal-notes.ts` + `license.ts` (new),
 `gateway/src/index.ts` (routing, `VERSION` bump, endpoint lists),
 `gateway/src/lib/http.ts` (`X-Agent-Purpose` CORS allow-header, new `text()`
 helper), `gateway/src/lib/log.ts` + `gateway/schema.sql` (new columns),
@@ -108,7 +110,27 @@ real defects: the "Content Signals" link
 Signals Policy boilerplate (verbatim, CC0-licensed text that real sites
 like `niaaa.nih.gov` actually serve) — replaced with the verbatim canonical
 text so the fixture reads like a genuine implementation, not an
-approximation of one.
+approximation of one. Third round: "publishing doesn't stop anything"
+reworded to "publishing a policy doesn't mean it's respected"; the "is this
+really who it says it is?" framing (a rhetorical question, not a concrete
+claim) replaced with a plain statement of what Demo 1 actually checks
+(a valid cryptographic signature); and a real granularity gap surfaced by
+the user — robots.txt/Content Signals states a policy for the whole site, it
+cannot target one resource, while RSL's `<content url="…">` can and does —
+called out explicitly in both §1 and the §3 fetched-panel captions.
+
+**Fourth round: the user asked the obvious follow-up** — if robots.txt can't
+target this resource and the enforcement logic (`decide()`) only ever read
+the RSL file anyway, why include robots.txt in this demo at all? It was dead
+weight: displayed on the page but never actually consulted by the decision
+it was supposed to help explain. Rather than patch around that, **removed
+robots.txt entirely** — route (`gateway/src/routes/robots.ts`), fixture
+(`robotsTxtFor()`, the canonical Content Signals boilerplate added in round
+2), and every page/copy mention. Demo 2 is now built entirely around RSL,
+the one mechanism that actually targets this resource. Confirmed RSL's own
+vocabulary (`search`/`ai-input`/`ai-train`) already supplies everything the
+`X-Agent-Purpose` header needed Content Signals for, so nothing else had to
+change to fill the gap.
 
 **Not yet done:** deploy to the live gateway/site, and the remote-D1
 migration — pending the user's go-ahead (deploying is outward-facing).
