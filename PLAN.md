@@ -1,7 +1,10 @@
 # ElevIQ Lab — Demo 2 (Decide)
 
-**Status (2026-09-14): built and verified locally (headless-browser + curl),
-not yet deployed.** Demo 1 checked whether a request carries a valid
+**Status (2026-09-14): deployed and live at `https://lab.eleviq.solutions/decide/`.**
+All three scenarios verified against production (not just local `wrangler
+dev`); the three D1 migrations applied to the remote `eleviq-lab-log`
+database; Demo 4's `/measure/` dashboard confirmed unaffected by the schema
+change. Demo 1 checked whether a request carries a valid
 cryptographic signature. Demo 2 answers a different question: given a
 verified request, is it actually allowed to do a certain action, or access a
 certain resource?
@@ -132,8 +135,33 @@ vocabulary (`search`/`ai-input`/`ai-train`) already supplies everything the
 `X-Agent-Purpose` header needed Content Signals for, so nothing else had to
 change to fill the gap.
 
-**Not yet done:** deploy to the live gateway/site, and the remote-D1
-migration — pending the user's go-ahead (deploying is outward-facing).
+**Deployed (2026-09-14), on the user's go-ahead:** `npm run deploy:gateway` +
+the three `ALTER TABLE` migrations against remote D1. Along the way, found
+(not a bug in our code): `GET /robots.txt` on `eleviq-lab-gateway.
+gateway-worker.workers.dev` returns Cloudflare's own platform-level default
+robots.txt (their real Managed robots.txt / Content Signals feature for
+`*.workers.dev`), intercepting that exact path before it ever reaches this
+Worker — confirmed by checking that every other path, including genuinely
+unmatched ones, correctly reflects the current deployed code. Irrelevant to
+Demo 2 now that it doesn't rely on `/robots.txt` at all, and a fitting
+real-world footnote to round 4's removal: even if we wanted to serve our own
+robots.txt from this Worker, this shared domain wouldn't reliably let us.
+
+**Fifth round — the user asked the natural next question: what stops an
+agent from lying about its declared purpose?** Answer, stated plainly:
+nothing does, structurally — `X-Agent-Purpose` (like RSL, like Content
+Signals) is a self-report at request time; there's no way to cryptographically
+bind a declared intent to what actually happens to the data after it leaves
+the server. What identity (Demo 1) adds is not prevention but
+**accountability**: a lie isn't anonymous, so it's traceable after the fact
+even though it can't be blocked in the moment. Added a short, one-sentence
+disclaimer to the end of §3 saying exactly this — same honesty convention as
+Demo 1's "a UA that deliberately spoofs a real browser is fundamentally
+undetectable" admission, rather than let the page imply the policy engine
+solves trust. Broader options discussed but not built: behavioral/pattern
+detection via the access-log dashboard (declared purpose vs. observed crawl
+pattern — a natural Demo 4 extension), and content watermarking/canaries for
+after-the-fact proof of misuse.
 
 # ElevIQ Lab — Demo 1 (Identify) + Demo 4 (Measure: part A lab, part B site)
 

@@ -31,8 +31,7 @@
         <p>A website can state an answer for one specific resource in a license file, in
           a format called <b><a href="https://rslstandard.org/" target="_blank" rel="noopener">Really Simple Licensing (RSL)</a></b>
           — a short, machine-readable way to spell out exactly what's allowed, refused,
-          or requires payment.</p>
-        <p>This is a real file, served by this lab's gateway. You can view it here:
+          or requires payment. This lab's gateway serves a real one:
           <a href="https://eleviq-lab-gateway.gateway-worker.workers.dev/.well-known/rsl.xml" target="_blank" rel="noopener"><code>/.well-known/rsl.xml</code></a>.</p>
         <p>Publishing a policy doesn't mean it's respected — a request can simply ignore
           it. This demo shows how a server enforces it instead: checking each request and
@@ -149,6 +148,10 @@
               happens above, in section 2.</p>
           </div>
         </div>
+        <p class="unlisted-note">This checks what an agent <i>declared</i>, not what it
+          does with the resource afterward — nothing stops it from declaring
+          <code>ai-input</code> and training on it anyway. Identity makes that traceable
+          after the fact. It doesn't prevent it.</p>
       </section>
 
       <section class="section step">
