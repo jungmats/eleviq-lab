@@ -30,8 +30,10 @@ cross-origin. Nothing is simulated — real Ed25519 signing and verification.
 |---|---|---|
 | **1 · Identify** | agent identity via Web Bot Auth | ✅ built — `/identity/` |
 | **2 · Decide** | policy-based access / refusal | ✅ built — `/decide/` |
-| 3 · Charge | HTTP 402 · Pay Per Crawl · x402 | planned |
-| **4 · Measure** | attribution dashboards | ✅ built — `/measure/` (Demo 1's log) + `insights.eleviq.solutions` (site traffic, behind Cloudflare Access) |
+| 3 · Delegate | agent acting on behalf of a user (email code) | planned |
+| 4 · Charge | HTTP 402 · Pay Per Crawl · x402 | planned |
+| **5 · Measure** | attribution dashboards | ✅ built — `/measure/` (Demo 1's log) + `insights.eleviq.solutions` (site traffic, behind Cloudflare Access) |
+| 6 · Sustain | post-ad monetization — scope tbd, likely several demos | planned |
 
 See [`PLAN.md`](PLAN.md).
 

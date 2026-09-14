@@ -28,8 +28,9 @@
           end to end, with the reference code alongside.</p>
         <p>The problems agent-readiness and monetization work surface fall into a pipeline:
           an agent has to be <b>identified</b>, a <b>decision</b> made about what it may do,
-          access <b>charged</b> for where that applies, and the activity <b>measured</b> and
-          attributed.</p>
+          who it's <b>acting for</b> confirmed, access <b>charged</b> where that applies, the
+          activity <b>measured</b> and attributed — and, underneath all of it, how a site
+          <b>sustains</b> itself once agent traffic breaks the ad-funded model.</p>
         <p class="unlisted-note">Unlisted: this lab is not indexed and nothing links to it
           from eleviq.solutions. Share the exact URLs. The API endpoints behind the demos are
           public by design — they are what a visiting agent talks to.</p>
@@ -62,6 +63,16 @@
 
           <div class="stage is-soon">
             <span class="badge soon">Coming</span>
+            <h3>Delegate</h3>
+            <p class="stage-sub">Who is this agent acting for?</p>
+            <p>A verified, permitted agent still isn't the same as a person. Proving it's
+              acting for a specific user — a one-time code sent to their email, checked
+              before the agent gets access on their behalf.</p>
+            <p class="stack">Technologies: email verification code · OAuth device flow (later)</p>
+          </div>
+
+          <div class="stage is-soon">
+            <span class="badge soon">Coming</span>
             <h3>Charge</h3>
             <p class="stage-sub">What does access cost?</p>
             <p>Payment required over HTTP 402 — Cloudflare Pay Per Crawl for the managed
@@ -88,16 +99,18 @@
             <p class="stack">Technologies: Cloudflare D1 · User-Agent classification · Cloudflare Access</p>
           </div>
 
-        </div>
-      </section>
+          <div class="stage is-soon">
+            <span class="badge soon">Coming</span>
+            <h3>Sustain</h3>
+            <p class="stage-sub">What replaces the ad-funded web?</p>
+            <p>Agents don't render ads, don't click them, and increasingly strip them. What
+              replaces that revenue — per-use access, licensing, agent-native commerce,
+              outcome-based compensation when content is cited — is unsettled. Likely more
+              than one demo, as the standards firm up.</p>
+            <p class="stack">Technologies: not yet decided</p>
+          </div>
 
-      <section class="section">
-        <h2>Open problem — monetization after ads</h2>
-        <p>Agents don't render ads, don't click them, and increasingly strip them. A large
-          part of the web is funded by a model that agent traffic breaks. What replaces it —
-          per-use access, licensing, agent-native commerce, outcome-based compensation when
-          content is cited — is unsettled. The lab will host experiments here as the
-          standards firm up.</p>
+        </div>
       </section>
 
     </main>

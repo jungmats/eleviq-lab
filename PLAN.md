@@ -24,8 +24,8 @@ url="...">` can target exactly that, and does; it's now the demo's only
 "stated" artifact. See "rounds of copy review" below for how this was found.
 
 **Decisions made (agreed with the user before building):**
-- No payment/402 preview in this demo — strictly allow/deny. Charge is Demo
-  3's territory.
+- No payment/402 preview in this demo — strictly allow/deny. Charge is its
+  own demo's territory.
 - A new, self-contained protected resource — "Q3 competitive deal-margin
   notes" (`GET /api/decide/deal-notes`) — not Demo 1's price list.
 - Identity is fixed here: every request signs with the same trusted
@@ -409,7 +409,8 @@ Since initial deploy:
   from replay: this is about the claim never being signed data at all, not
   about reuse.
 
-Demo 2 — Decide is now built too (see the top of this file). Next: Demo 3 — Charge.
+Demo 2 — Decide is now built too (see the top of this file). Pipeline is now
+6 stages (see top); next up is Demo 3 — Delegate.
 
 ## Context
 
@@ -421,7 +422,11 @@ x402, Pay Per Crawl, Bot Analytics) but shows nothing working.
 demonstrations of the problems agent-readiness engagements surface — and a reference
 implementation clean enough to point a coding assistant at.
 
-Full pipeline: **Identify → Decide → Charge → Measure** (+ "post-ad monetization").
+Full pipeline (2026-09-14, expanded to 6 stages): **Identify → Decide →
+Delegate → Charge → Measure → Sustain**. Delegate and Sustain added per user
+request — Delegate = agent acting on behalf of a user, proven via an email
+one-time code (not OAuth, for now); Sustain = the former "post-ad
+monetization" open problem, now its own tile, scope tbd.
 This plan covers **Demo 1 — Identify** only. The landing page names the other three as
 "coming" with no link.
 
@@ -700,7 +705,9 @@ confirmed — ChatGPT Work yes, consumer ChatGPT no).
 ## Later (not this plan)
 
 - Scenarios `expired` + `tampered`.
-- Demo 3 — Charge: Pay Per Crawl walkthrough + real x402 (testnet USDC on Base).
+- Demo 3 — Delegate: agent acting for a user, email one-time code. Not started.
+- Demo 4 — Charge: Pay Per Crawl walkthrough + real x402 (testnet USDC on Base).
+- Demo 6 — Sustain: post-ad monetization, scope tbd (may be several demos).
 - A reusable visual **policy editor** component — a form generating the
   robots.txt Content-Signal lines + RSL license XML from structured input
   (which uses are allowed, which need payment, which are refused). Raised
