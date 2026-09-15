@@ -7,6 +7,18 @@ resource + on-chain proof. Runs on Base Sepolia (free testnet) with testnet
 USDC — nothing of real value moves. All three scenarios verified against
 production with real settlement, not just local `wrangler dev` — see below.
 
+**Two more fixes from the user's first real click-through of the deployed
+page:** (1) `sepolia.base.org` genuinely rate-limited a live settlement
+attempt — not theoretical, it happened to a real visitor. Fixed with
+`retryCount`/`retryDelay` on the RPC transport (`gateway/src/lib/x402.ts`)
+instead of just re-running it by hand. (2) The error shown for a failed
+settlement was viem's raw multi-line dump — signed tx hex, full request
+body, docs link, version string — verbatim in the page's "reason" text.
+Added `shortErrorReason()`: prefers an on-chain revert reason, then viem's
+own `.details`/`.shortMessage`, and never falls back to the raw dump. Both
+re-verified live: a real decline now shows exactly `"ERC20: transfer amount
+exceeds balance"`, not a wall of hex.
+
 **Funding the two wallets was the hardest part of this build, not the code.**
 Circle's faucet (`faucet.circle.com`) funded the agent payer with USDC in one
 try — it's public/permissionless, no anti-bot gate. Getting the relayer its

@@ -67,14 +67,29 @@ export function eip712Domain() {
   } as const;
 }
 
-const publicClient = createPublicClient({ chain: baseSepolia, transport: http(RPC_URL) });
+// sepolia.base.org is a free public RPC — Base's own docs call it "not
+// intended for production" and it genuinely rate-limits under ordinary
+// demo traffic (confirmed live, not theoretical). retryCount/retryDelay
+// makes viem retry a rate-limited call with backoff instead of failing the
+// whole request on the first transient "over rate limit" response.
+const RPC_TRANSPORT_OPTS = { retryCount: 5, retryDelay: 1200 } as const;
+
+const publicClient = createPublicClient({
+  chain: baseSepolia,
+  transport: http(RPC_URL, RPC_TRANSPORT_OPTS),
+  pollingInterval: 2000,
+});
 
 export function relayerAccount(privateKey: Hex) {
   return privateKeyToAccount(privateKey);
 }
 
 function walletClient(privateKey: Hex) {
-  return createWalletClient({ account: relayerAccount(privateKey), chain: baseSepolia, transport: http(RPC_URL) });
+  return createWalletClient({
+    account: relayerAccount(privateKey),
+    chain: baseSepolia,
+    transport: http(RPC_URL, RPC_TRANSPORT_OPTS),
+  });
 }
 
 export async function usdcBalanceOf(address: Address): Promise<bigint> {
@@ -215,7 +230,7 @@ export async function verifyPayment(
     });
     return { ok: true, simulatedRequest: simulated.request as never };
   } catch (err) {
-    return { ok: false, reason: "on-chain-rejected", detail: shortRevertReason(err) };
+    return { ok: false, reason: "on-chain-rejected", detail: shortErrorReason(err) };
   }
 }
 
@@ -237,8 +252,23 @@ function splitSignature(signature: Hex): [number, Hex, Hex] {
   return [v, r, s];
 }
 
-function shortRevertReason(err: unknown): string {
-  const msg = String((err as Error)?.message ?? err);
-  const match = msg.match(/reverted with the following reason:\s*([^\n]+)/) || msg.match(/execution reverted:?\s*([^\n"]+)/i);
-  return (match?.[1] || msg).trim().slice(0, 200);
+/**
+ * viem's own error `.message` is a multi-line debugging dump — signed
+ * transaction hex, full request/response bodies, a docs link, its own
+ * version number. Genuinely useful in a server log, actively harmful shown
+ * to a page visitor as "why didn't this work" (found by testing this for
+ * real against a rate-limited RPC, not by inspecting the code). This pulls
+ * out just the one line that actually answers the question, in priority
+ * order: an on-chain revert reason, then viem's own short summary/detail
+ * fields, then a generic fallback — never the raw dump.
+ */
+export function shortErrorReason(err: unknown): string {
+  const e = err as { shortMessage?: string; details?: string; message?: string };
+  const msg = e?.message ?? String(err);
+  const revertMatch =
+    msg.match(/reverted with the following reason:\s*([^\n]+)/) || msg.match(/execution reverted:?\s*([^\n"]+)/i);
+  if (revertMatch) return revertMatch[1].trim().slice(0, 200);
+  if (e?.details) return e.details.trim().slice(0, 200);
+  if (e?.shortMessage) return e.shortMessage.trim().slice(0, 200);
+  return "Settlement failed for an unexpected reason.";
 }

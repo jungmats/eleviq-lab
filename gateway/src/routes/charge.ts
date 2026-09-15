@@ -22,6 +22,7 @@ import {
   decodePaymentHeader,
   relayerAccount,
   settlePayment,
+  shortErrorReason,
   verifyPayment,
   USDC_DECIMALS,
   type PaymentRequirement,
@@ -153,10 +154,11 @@ export async function handleCharge(request: Request, env: Env, ctx: ExecutionCon
     );
   } catch (err) {
     logAccess(env, ctx, { path: PATH, outcome: "verified", status: 402, chargeStatus: "settlement-failed" });
+    console.error("charge settlement failed:", err);
     return problem(402, {
       type: `${SITE}/charge/#settlement-failed`,
       title: "Payment verified but settlement failed on-chain",
-      detail: String((err as Error)?.message ?? err),
+      detail: shortErrorReason(err),
       accepts: [requirement],
     });
   }
