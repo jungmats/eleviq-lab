@@ -31,10 +31,8 @@
         <p>This demo checks that claim: an agent acting for a specific email address only
           gets access once it presents a one-time code sent to that address — proof of an
           inbox, not proof that an email address was typed correctly.</p>
-        <p class="unlisted-note">This demo <b>simulates</b> the email step: the code
-          appears directly on this page instead of being sent anywhere, so the mechanism
-          is visible without needing a real inbox. A real deployment would only ever email
-          it.</p>
+        <p class="unlisted-note">The code is genuinely emailed — nothing here shows it to
+          you. Use an email address you can actually check to try the full flow.</p>
       </section>
 
       <section class="section step">
@@ -54,20 +52,20 @@
           <div class="console-controls">
             <div class="control-row">
               <span class="label">1 — Who is the agent acting for?</span>
-              <input type="text" id="acting-for" value="jane@example.com">
+              <input type="text" id="acting-for" placeholder="an inbox you can actually check">
             </div>
 
             <div class="control-row">
               <span class="label">2 — Get a one-time code</span>
-              <button class="send-btn" id="get-code">Request code →</button>
+              <button class="send-btn" id="get-code">Email me a code →</button>
               <p class="hint" id="code-result"></p>
             </div>
 
             <div class="control-row">
               <span class="label">3 — What code does the agent present?</span>
-              <input type="text" id="code-input" placeholder="Type the code above, a different one, or leave this blank">
-              <p class="hint">Try the real one, change a digit, or leave it empty — the
-                agent presents exactly what's here.</p>
+              <input type="text" id="code-input" placeholder="Type the code from your inbox, a different one, or leave this blank">
+              <p class="hint">Type the code you received, change a digit, or leave it
+                empty — the agent presents exactly what's here.</p>
             </div>
 
             <button class="send-btn" id="send">Send request →</button>
@@ -114,14 +112,15 @@
 curl -s -X POST https://eleviq-lab-gateway.gateway-worker.workers.dev/api/delegate/request-code \
   -H 'Signature-Input: …' -H 'Signature: …' -H 'Signature-Agent: …' \
   -H 'content-type: application/json' \
-  -d '{"acting_for":"jane@example.com"}'</pre>
-        <p>Returns the code directly — <b>DEMO only</b>; a real deployment would email it
-          and never put it in this response.</p>
+  -d '{"acting_for":"you@example.com"}'</pre>
+        <p>Emails the code to <code>acting_for</code> — it's never in this response. Use
+          an address you can check; the endpoint is rate-limited per email and per
+          connection.</p>
 
         <h3>B — Present it</h3>
         <pre class="wire">curl -i https://eleviq-lab-gateway.gateway-worker.workers.dev/api/delegate/account \
   -H 'Signature-Input: …' -H 'Signature: …' -H 'Signature-Agent: …' \
-  -H 'X-Acting-For: jane@example.com' -H 'X-Delegation-Code: 482913'</pre>
+  -H 'X-Acting-For: you@example.com' -H 'X-Delegation-Code: 482913'</pre>
         <p>Drop <code>X-Delegation-Code</code>, or change one digit, to see the other two
           outcomes. Codes are single-use and expire after 5 minutes.</p>
       </section>

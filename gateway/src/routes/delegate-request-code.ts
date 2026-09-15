@@ -1,14 +1,19 @@
 /**
  * POST /api/delegate/request-code — issues a one-time delegation code for a
- * claimed email. Requires the same signed identity as every other protected
- * endpoint here — an unverified agent doesn't get this far either.
+ * claimed email and emails it. Requires the same signed identity as every
+ * other protected endpoint here — an unverified agent doesn't get this far
+ * either.
  *
- * SIMULATED: returns the code directly instead of emailing it. See
- * lib/delegation.ts for why, and what a real deployment would do instead.
+ * The code is never returned in this response — only the inbox that owns
+ * `acting_for` ever sees it. See lib/email.ts for delivery and
+ * lib/ratelimit.ts for the abuse guard this endpoint needs now that it
+ * triggers a real send.
  */
 import { checkIdentity } from "../lib/verify";
 import { json, problem } from "../lib/http";
 import { requestCode } from "../lib/delegation";
+import { sendDelegationCode } from "../lib/email";
+import { checkRateLimit } from "../lib/ratelimit";
 import type { Env } from "../lib/env";
 
 export async function handleRequestCode(request: Request, env: Env): Promise<Response> {
@@ -36,13 +41,25 @@ export async function handleRequestCode(request: Request, env: Env): Promise<Res
     });
   }
 
+  const ip = request.headers.get("CF-Connecting-IP");
+  const allowed = await checkRateLimit(env, actingFor, ip);
+  if (!allowed) {
+    return problem(429, {
+      title: "Too many code requests",
+      detail: "This email address (or your connection) has requested too many codes recently. Wait a bit and try again.",
+    });
+  }
+
   const code = await requestCode(env, actingFor);
+  const sent = await sendDelegationCode(env, actingFor, code);
+  if (!sent.ok) {
+    return problem(502, { title: "Could not send the code", detail: sent.detail });
+  }
 
   return json({
-    _warning: "DEMO — a real deployment would email this code, never return it here.",
     acting_for: actingFor,
-    code,
+    sent: true,
     expires_in_seconds: 300,
-    next: "Present this code via X-Delegation-Code (with X-Acting-For: same email) when requesting GET /api/delegate/account.",
+    next: "Check that inbox, then present the code via X-Delegation-Code (with X-Acting-For: same email) when requesting GET /api/delegate/account.",
   });
 }

@@ -4,9 +4,8 @@
  * "ElevIQ Lab demo agent" key as Demo 1/2. What's new is a second, separate
  * proof: a one-time code tied to the email the agent claims to act for.
  *
- * SIMULATED: requesting a code returns it directly in the response instead
- * of emailing it — clearly labeled wherever it's shown. See PLAN.md / the
- * page's own §1 for why, and what a real deployment would do instead.
+ * The code is genuinely emailed by the gateway — this page never sees it.
+ * Use an inbox you can check to try the full flow.
  */
 import { sign, generateNonce, signerFromJWK } from "./agent-sign.js";
 
@@ -69,12 +68,16 @@ async function requestCodeFor(email) {
 $("get-code").addEventListener("click", async () => {
   const email = emailOf();
   const out = $("code-result");
+  if (!email || !email.includes("@")) {
+    out.textContent = "Enter an email address first — one you can actually check.";
+    return;
+  }
   out.textContent = "Requesting…";
   try {
     const { res, data } = await requestCodeFor(email);
     out.innerHTML = res.ok
-      ? `Code for <b>${email}</b>: <code>${data.code}</code> — DEMO, a real deployment would email this instead. Expires in ${data.expires_in_seconds}s.`
-      : `Could not get a code: ${data.detail || res.status}`;
+      ? `Code sent to <b>${email}</b> — check that inbox. Expires in ${data.expires_in_seconds}s.`
+      : `Could not send a code: ${data.detail || res.status}`;
   } catch (err) {
     out.textContent = `Error: ${err && err.message ? err.message : err}`;
   }

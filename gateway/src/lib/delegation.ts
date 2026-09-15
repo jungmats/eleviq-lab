@@ -6,12 +6,9 @@
  * an email. The proof here: a one-time code tied to that email, single-use,
  * short-lived, stored in KV (same shape as nonce.ts's replay protection).
  *
- * SIMULATED for now: requestCode() returns the code directly in the API
- * response instead of emailing it — clearly labeled as a demo stand-in
- * wherever it's used (see routes/delegate-request-code.ts). A real
- * deployment would email it and never return it. Swapping that in later
- * doesn't change this module's shape, only what the route does with the code
- * after generating it.
+ * This module only generates and checks codes — it never sees how they're
+ * delivered. The route (routes/delegate-request-code.ts) emails the code via
+ * lib/email.ts and never puts it in a response body.
  */
 import type { Env } from "./env";
 

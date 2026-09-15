@@ -31,7 +31,13 @@ binding = "NONCES"
 id = "7cf4d6ff9a28415aa443a9426a513178"
 
 # Demo 3 (Delegate): one-time codes proving an agent is acting for a specific
-# email, TTL'd and single-use, same shape as NONCES above.
+# email, TTL'd and single-use, same shape as NONCES above. Also holds the
+# request-code rate-limit counters ("ratelimit:" key prefix).
 [[kv_namespaces]]
 binding = "DELEGATION_CODES"
 id = "f9e4cafcbe4d40839e2cb2ac868e9ffe"
+
+# RESEND_API_KEY is a secret, not set here:
+#   local:  add RESEND_API_KEY=re_... to gateway/.dev.vars (gitignored)
+#   remote: npx wrangler secret put RESEND_API_KEY
+# Sends the real Demo 3 delegation-code email — see src/lib/email.ts.
