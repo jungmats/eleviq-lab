@@ -24,14 +24,13 @@
 
       <section class="section step">
         <h2><span class="step-n">1</span> The problem</h2>
-        <p>Demo 1 proved a specific key signed this request. Demo 2 proved that key is
-          allowed to do this. Neither proves <i>who the request is for</i> — a fully
-          verified, fully permitted agent can still be lying about which person it claims
-          to act on behalf of.</p>
-        <p>This lab's answer, pragmatic rather than complete (OAuth can come later): a
-          one-time code. An agent claiming to act for a specific email address only gets
-          access once it presents a code sent to that address — proof of an inbox, not
-          proof that an email address was typed correctly.</p>
+        <p>An agent can be genuinely verified, and genuinely allowed to do something, and
+          still be lying about <i>who it's doing it for</i> — nothing about a valid
+          signature or a permitted purpose says which person the agent claims to
+          represent.</p>
+        <p>This demo checks that claim: an agent acting for a specific email address only
+          gets access once it presents a one-time code sent to that address — proof of an
+          inbox, not proof that an email address was typed correctly.</p>
         <p class="unlisted-note">This demo <b>simulates</b> the email step: the code
           appears directly on this page instead of being sent anywhere, so the mechanism
           is visible without needing a real inbox. A real deployment would only ever email
@@ -42,14 +41,14 @@
         <h2><span class="step-n">2</span> The demo</h2>
 
         <div class="agent-callout">
-          Identity is still the same trusted key as Demo 1 and 2. What's new: the agent
-          must also present a one-time code proving it's genuinely acting for the email it
-          claims — not just naming one.
+          Every request below comes from a verified, signed agent. What this demo adds:
+          proving it's acting for the email it claims — not just naming one — by
+          presenting a one-time code.
         </div>
 
         <p class="step-lead">The agent requests a protected resource — a specific
-          partner's own <b>reseller account statement</b> (Demo 1 showed the public price
-          tiers; this is one partner's private detail).</p>
+          partner's own <b>reseller account statement</b>, private detail only that
+          partner should see.</p>
 
         <div class="console">
           <div class="console-controls">
@@ -128,10 +127,10 @@
       <section class="section step">
         <h2><span class="step-n">3</span> Test it from your own tools</h2>
         <p>The console above is a convenience. The gateway is a plain public HTTP API —
-          two calls, same signed identity as Demo 1 on both.</p>
+          two calls, both signed the same way.</p>
 
         <h3>A — Request a code</h3>
-        <pre class="wire"># sign this the same way as /api/sign in Demo 1
+        <pre class="wire"># sign with your agent key (see /api/sign for a test-aid signer)
 curl -s -X POST https://eleviq-lab-gateway.gateway-worker.workers.dev/api/delegate/request-code \
   -H 'Signature-Input: …' -H 'Signature: …' -H 'Signature-Agent: …' \
   -H 'content-type: application/json' \
@@ -145,15 +144,6 @@ curl -s -X POST https://eleviq-lab-gateway.gateway-worker.workers.dev/api/delega
   -H 'X-Acting-For: jane@example.com' -H 'X-Delegation-Code: 482913'</pre>
         <p>Drop <code>X-Delegation-Code</code>, or change one digit, to see the other two
           outcomes. Codes are single-use and expire after 5 minutes.</p>
-
-        <h3>C — Ask an AI assistant with real email access</h3>
-        <pre class="wire">Fetch https://eleviq-lab-gateway.gateway-worker.workers.dev/, sign a
-request to /api/delegate/request-code for my own email address, check
-your connected inbox for the code (there won't be one — this demo
-never actually sends it), then explain what a real version would do.</pre>
-        <p>The genuinely compelling version of this test needs a real emailed code and an
-          assistant with inbox access — completing the loop itself, unattended. Not built
-          yet; see the note in section 1.</p>
       </section>
 
     </main>
