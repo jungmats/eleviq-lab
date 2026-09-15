@@ -1,10 +1,70 @@
 # ElevIQ Lab — Demo 4 (Charge)
 
-**Built 2026-09-15, NOT yet deployed — pending user review and wallet funding.**
-`/charge/`, `GET /api/charge/report`. A real x402 (HTTP 402) payment flow: no
-X-PAYMENT header → `402` + price; a genuine signed-and-settled payment →
-`200` + resource + on-chain proof. Runs on Base Sepolia (free testnet) with
-testnet USDC — nothing of real value moves.
+**Status (2026-09-15): deployed and live at `https://lab.eleviq.solutions/charge/`.**
+`GET /api/charge/report`. A real x402 (HTTP 402) payment flow: no X-PAYMENT
+header → `402` + price; a genuine signed-and-settled payment → `200` +
+resource + on-chain proof. Runs on Base Sepolia (free testnet) with testnet
+USDC — nothing of real value moves. All three scenarios verified against
+production with real settlement, not just local `wrangler dev` — see below.
+
+**Funding the two wallets was the hardest part of this build, not the code.**
+Circle's faucet (`faucet.circle.com`) funded the agent payer with USDC in one
+try — it's public/permissionless, no anti-bot gate. Getting the relayer its
+testnet ETH (for gas) took five attempts: Alchemy's and QuickNode's faucets
+both advertised "no mainnet balance required" but rejected the fresh address
+anyway; Coinbase's CDP Portal faucet URL from its own docs 404'd because the
+dashboard now scopes routes under a per-account `entity_...` id the docs
+don't reflect. What actually worked: sending a couple of real dollars of ETH
+to the relayer on Base mainnet first, which satisfied every faucet's
+anti-sybil check afterward. Worth remembering for next time this lab needs a
+fresh testnet wallet funded.
+
+**Real bug found and fixed post-funding, caught by testing against
+production with actual money-equivalent value at stake, not by re-reading
+the code:** the first live payment attempt failed with a viem error showing
+`eth_sendTransaction` instead of the expected `eth_sendRawTransaction` —
+meaning the relayer's settlement call was asking the public RPC node itself
+to sign, which it obviously can't ("unknown account"). Cause:
+`verifyPayment()` passed the relayer's bare **address** (a string) into
+`simulateContract()`'s `account` field instead of the full signing account
+object; `simulateContract`'s returned `request.account` then carried that
+address-only stub, and `settlePayment()`'s `writeContract(request)` used
+*that* account instead of the wallet client's own properly-keyed one —
+silently downgrading from local signing to the JSON-RPC signing path no
+public node supports. Fixed by threading the real account object through
+`verifyPayment()` end to end (`gateway/src/lib/x402.ts`,
+`gateway/src/routes/charge.ts`); re-verified with a real settled transaction,
+independently confirmed via `eth_getTransactionReceipt` (status success) and
+fresh `balanceOf` reads on both wallets (not just trusting the response
+body).
+
+**Second bug, same session — a calibration one:** the "insufficient funds"
+scenario's premium tier was priced at $5, sized for the ~$1–2 the user was
+originally told to fund with. Circle's faucet actually drips a fixed 20 USDC
+per request, so once real-funded, $5 was comfortably affordable and the
+scenario silently *succeeded* instead of declining — caught by actually
+running it live, not by inspecting the price constant. Repriced to $1,000
+(`gateway/src/routes/charge.ts`), deliberately far above any plausible
+faucet drip rather than tuned to one, so it can't silently drift back into
+"affordable" again.
+
+**Replay scenario verified against the real contract, not just the
+gateway's response:** independently called `authorizationState(agent,
+nonce)` on the live USDC contract after a replay attempt — confirmed `true`
+(used) — and the real revert reason (`FiatTokenV2: authorization is used or
+canceled`) matched exactly. EIP-3009's own on-chain nonce tracking, not
+something this gateway re-implements.
+
+**Copy revision, same day, from user feedback on the built page:** §1
+shortened and de-weaseled (cut rhetorical framing and padding, four plain
+sentences); the wallet-key callout rewritten around its actual purpose
+(normally you'd never publish a private key — here's why this one is, and
+what it lets a visitor actually do with it) instead of an operational aside
+about "topped up"; §4 B replaced a vague reference to `assets/charge.js`
+with an actual runnable guide — new `docs/reference/charge-pay.mjs`
+(~50 lines, mirrors `sign-request.mjs`'s exact convention: `mkdir` / `npm
+install` / `curl -O` / `node`), tested against both local and production
+gateways before being linked.
 
 **Facilitator decision (agreed with the user before building):** self-hosted,
 not Coinbase's CDP-hosted one. x402 is explicitly permissionless — "anyone
@@ -50,13 +110,16 @@ the on-chain dry-run all work, all before any wallet is funded. Full page
 verified in headless Chromium: live balance panel, live 402 quote panel,
 the two-step exchange render, verdict/log — screenshotted.
 
-**Not yet done:** fund the demo payer wallet (testnet USDC) and the
-relayer wallet (testnet ETH, for gas) via a faucet — real external step,
-handed to the user. Once funded, re-verify the success path (`200` +
-settlement) and the replay-rejection path for real, then deploy
-(`npm run deploy:gateway` + the `charge_status`/`charge_amount`/
-`charge_tx_hash` D1 migration + `wrangler secret put CHARGE_RELAYER_KEY`) on
-explicit go-ahead, same as every prior demo.
+**Deployed and verified live (2026-09-15):** D1 migration + `wrangler secret
+put CHARGE_RELAYER_KEY` + `npm run deploy:gateway`, all against production.
+All three scenarios re-run against the real deployed gateway after funding
+and after the two bugs above were fixed — pay (real `200`, tx independently
+confirmed via `eth_getTransactionReceipt` + fresh `balanceOf` reads),
+insufficient-funds (real decline at the new $1,000 price), and replay (real
+decline, confirmed via `authorizationState`). The live public page itself
+re-verified in headless Chromium against `lab.eleviq.solutions/charge/` —
+not just `wrangler dev` — real balances, real `PAID · 200` verdict, real
+settled panel.
 
 **Files touched:** `gateway/src/lib/x402.ts` + `routes/charge.ts` (new),
 `gateway/src/lib/log.ts` + `schema.sql` (new charge_* columns),
@@ -66,10 +129,11 @@ explicit go-ahead, same as every prior demo.
 `VERSION` bump), `scripts/gen-charge-keys.mjs` + `gateway/keys/charge-agent.json`
 (new), `build/charge-sign.entry.js` + `build/bundle.mjs` (viem browser
 bundle + key publishing), `docs/charge/index.html` + `docs/assets/charge.js`
-(new), `docs/lab.css` (balance table + multi-step exchange styles),
-`docs/index.html` (landing card flipped to live, reframed around "how does
-an agent pay" per user feedback — no cross-references to other demos, no
-Pay Per Crawl mention), `package.json` (`viem` dependency).
++ `docs/reference/charge-pay.mjs` (new), `docs/lab.css` (balance table +
+multi-step exchange styles), `docs/index.html` (landing card flipped to
+live, reframed around "how does an agent pay" per user feedback — no
+cross-references to other demos, no Pay Per Crawl mention), `package.json`
+(`viem` dependency).
 
 # ElevIQ Lab — Demo 3 (Delegate)
 

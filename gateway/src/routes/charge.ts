@@ -33,7 +33,11 @@ const PATH = "/api/charge/report";
 const TIERS: Record<string, { atomic: bigint; description: string }> = {
   standard: { atomic: 10_000n, description: "This week's agent-traffic signal report (standard tier)" },
   premium: {
-    atomic: 5_000_000n,
+    // Deliberately priced above any reasonable faucet drip (Circle's alone gives
+    // 20 USDC per request) so this scenario stays a genuine decline regardless
+    // of how well-funded the demo wallet ends up being — not tuned to a specific
+    // balance that could silently drift into "affordable" again.
+    atomic: 1_000_000_000n,
     description:
       "This week's agent-traffic signal report (premium tier — priced well above what the demo wallet is kept funded with, on purpose, to show a real decline)",
   },
@@ -99,7 +103,7 @@ export async function handleCharge(request: Request, env: Env, ctx: ExecutionCon
     });
   }
 
-  const verdict = await verifyPayment(payment, requirement, relayer.address);
+  const verdict = await verifyPayment(payment, requirement, relayer);
   if (!verdict.ok) {
     logAccess(env, ctx, {
       path: PATH,

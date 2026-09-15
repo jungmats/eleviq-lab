@@ -159,8 +159,9 @@ export type VerifyResult =
 export async function verifyPayment(
   payment: PaymentPayload,
   requirement: PaymentRequirement,
-  relayerAddress: Address,
+  relayer: ReturnType<typeof privateKeyToAccount>,
 ): Promise<VerifyResult> {
+  const relayerAddress = relayer.address;
   const { authorization, signature } = payment.payload;
 
   let recovered: Address;
@@ -210,7 +211,7 @@ export async function verifyPayment(
       abi: USDC_ABI,
       functionName: "transferWithAuthorization",
       args,
-      account: relayerAddress,
+      account: relayer,
     });
     return { ok: true, simulatedRequest: simulated.request as never };
   } catch (err) {
