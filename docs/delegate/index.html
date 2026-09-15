@@ -64,30 +64,10 @@
             </div>
 
             <div class="control-row">
-              <span class="label">3 — What does the agent present?</span>
-              <div class="scenario" id="scenario">
-                <label>
-                  <input type="radio" name="scenario" value="correct" checked>
-                  <span>
-                    <span class="s-name">The correct code</span><br>
-                    <span class="s-desc">Requests a fresh code for the email above and presents it.</span>
-                  </span>
-                </label>
-                <label>
-                  <input type="radio" name="scenario" value="wrong">
-                  <span>
-                    <span class="s-name">A wrong code</span><br>
-                    <span class="s-desc">Claims the email, makes up a code.</span>
-                  </span>
-                </label>
-                <label>
-                  <input type="radio" name="scenario" value="none">
-                  <span>
-                    <span class="s-name">No code</span><br>
-                    <span class="s-desc">Claims the email, presents nothing — what an unverified claim looks like.</span>
-                  </span>
-                </label>
-              </div>
+              <span class="label">3 — What code does the agent present?</span>
+              <input type="text" id="code-input" placeholder="Type the code above, a different one, or leave this blank">
+              <p class="hint">Try the real one, change a digit, or leave it empty — the
+                agent presents exactly what's here.</p>
             </div>
 
             <button class="send-btn" id="send">Send request →</button>

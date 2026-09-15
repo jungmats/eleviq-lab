@@ -21,8 +21,8 @@ const CODE_PATH = "/api/delegate/request-code";
 const ACCOUNT_PATH = "/api/delegate/account";
 
 const $ = (id) => document.getElementById(id);
-const scenarioOf = () => document.querySelector('input[name="scenario"]:checked').value;
 const emailOf = () => $("acting-for").value.trim();
+const codeOf = () => $("code-input").value.trim();
 
 let demoKey = null;
 async function loadKey() {
@@ -58,18 +58,11 @@ async function signedHeaders(target) {
   };
 }
 
-let lastCode = null;
-let lastCodeFor = null;
-
 async function requestCodeFor(email) {
   const target = GATEWAY + CODE_PATH;
   const headers = { "Content-Type": "application/json", ...(await signedHeaders(target)) };
   const res = await fetch(target, { method: "POST", headers, body: JSON.stringify({ acting_for: email }) });
   const data = await res.json().catch(() => ({}));
-  if (res.ok && data.code) {
-    lastCode = data.code;
-    lastCodeFor = email;
-  }
   return { res, data };
 }
 
@@ -89,14 +82,7 @@ $("get-code").addEventListener("click", async () => {
 
 /* ---------- the actual protected-resource request ---------- */
 
-async function buildRequest(scenario, email) {
-  let code;
-  if (scenario === "correct") {
-    code = lastCode && lastCodeFor === email ? lastCode : (await requestCodeFor(email)).data.code;
-  } else if (scenario === "wrong") {
-    code = "000000";
-  } // "none" — code stays undefined, header omitted entirely
-
+async function buildRequest(email, code) {
   const target = GATEWAY + ACCOUNT_PATH;
   const headers = { Accept: "application/json", "X-Acting-For": email };
   if (code) headers["X-Delegation-Code"] = code;
@@ -134,11 +120,12 @@ function setVerdict(kind, status, reason, facts) {
   dl.hidden = facts.length === 0;
 }
 
-function logLine(scenario, kind, text) {
+function logLine(code, kind, text) {
   const cls = { ok: "v-ok", bad: "v-bad", warn: "v-warn" }[kind];
+  const codeLabel = code ? `code ${code}` : "no code";
   $("log").insertAdjacentHTML(
     "afterbegin",
-    `<li>${new Date().toLocaleTimeString()} · ${scenario} · <span class="${cls}">${text}</span></li>`,
+    `<li>${new Date().toLocaleTimeString()} · ${codeLabel} · <span class="${cls}">${text}</span></li>`,
   );
 }
 
@@ -180,8 +167,8 @@ function interpret(httpStatus, data) {
 }
 
 async function send() {
-  const scenario = scenarioOf();
   const email = emailOf();
+  const code = codeOf();
   const btn = $("send");
   btn.disabled = true;
   $("verdict").className = "verdict";
@@ -189,7 +176,7 @@ async function send() {
   $("verdict").querySelector(".reason").textContent = "";
 
   try {
-    const { target, headers } = await buildRequest(scenario, email);
+    const { target, headers } = await buildRequest(email, code);
 
     $("req-wire").innerHTML = renderRequest(target, headers);
     const curl = curlFor(target, headers);
@@ -209,7 +196,7 @@ async function send() {
     $("res-body").textContent = `HTTP/1.1 ${res.status} ${res.statusText}\n\n` + JSON.stringify(data, null, 2);
 
     const summary = r.kind === "ok" ? `GRANTED for ${data.acting_for}` : "REFUSED";
-    logLine(scenario, r.kind, summary);
+    logLine(code, r.kind, summary);
   } catch (err) {
     setVerdict("bad", "— Error", String(err && err.message ? err.message : err), []);
     $("res-body").textContent = "—";
@@ -220,12 +207,9 @@ async function send() {
 
 $("send").addEventListener("click", send);
 
-// Deep-link a pre-run state: /delegate/?send=correct|wrong|none
-const preset = new URLSearchParams(location.search).get("send");
-if (preset && ["correct", "wrong", "none"].includes(preset)) {
-  const radio = document.querySelector(`input[name="scenario"][value="${preset}"]`);
-  if (radio) {
-    radio.checked = true;
-    send();
-  }
+// Deep-link a pre-run state: /delegate/?code=123456 (or ?code= for none)
+const params = new URLSearchParams(location.search);
+if (params.has("code")) {
+  $("code-input").value = params.get("code");
+  send();
 }
