@@ -4,8 +4,10 @@
  * "ElevIQ Lab demo agent" key as Demo 1/2. What's new is a second, separate
  * proof: a one-time code tied to the email the agent claims to act for.
  *
- * The code is genuinely emailed by the gateway — this page never sees it.
- * Use an inbox you can check to try the full flow.
+ * Two ways to get a code, presenter's choice via the "send it for real"
+ * checkbox: SIMULATED (default) — the code comes back in this response and
+ * is shown right here. REAL — "send_email": true, the gateway actually
+ * emails it via Resend and this page never sees it.
  */
 import { sign, generateNonce, signerFromJWK } from "./agent-sign.js";
 
@@ -57,27 +59,33 @@ async function signedHeaders(target) {
   };
 }
 
-async function requestCodeFor(email) {
+async function requestCodeFor(email, sendEmail) {
   const target = GATEWAY + CODE_PATH;
   const headers = { "Content-Type": "application/json", ...(await signedHeaders(target)) };
-  const res = await fetch(target, { method: "POST", headers, body: JSON.stringify({ acting_for: email }) });
+  const body = { acting_for: email, ...(sendEmail ? { send_email: true } : {}) };
+  const res = await fetch(target, { method: "POST", headers, body: JSON.stringify(body) });
   const data = await res.json().catch(() => ({}));
   return { res, data };
 }
 
 $("get-code").addEventListener("click", async () => {
   const email = emailOf();
+  const sendEmail = $("send-email").checked;
   const out = $("code-result");
-  if (!email || !email.includes("@")) {
+  if (sendEmail && (!email || !email.includes("@"))) {
     out.textContent = "Enter an email address first — one you can actually check.";
     return;
   }
-  out.textContent = "Requesting…";
+  out.textContent = sendEmail ? "Sending…" : "Requesting…";
   try {
-    const { res, data } = await requestCodeFor(email);
-    out.innerHTML = res.ok
-      ? `Code sent to <b>${email}</b> — check that inbox. Expires in ${data.expires_in_seconds}s.`
-      : `Could not send a code: ${data.detail || res.status}`;
+    const { res, data } = await requestCodeFor(email, sendEmail);
+    if (!res.ok) {
+      out.innerHTML = `Could not get a code: ${data.detail || res.status}`;
+    } else if (data.sent) {
+      out.innerHTML = `Sent to <b>${email}</b> — check that inbox. Expires in ${data.expires_in_seconds}s.`;
+    } else {
+      out.innerHTML = `Code for <b>${email}</b>: <code>${data.code}</code> — DEMO, shown here only because "send it for real" wasn't ticked. Expires in ${data.expires_in_seconds}s.`;
+    }
   } catch (err) {
     out.textContent = `Error: ${err && err.message ? err.message : err}`;
   }

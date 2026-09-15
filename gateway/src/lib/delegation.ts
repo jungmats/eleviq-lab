@@ -7,8 +7,9 @@
  * short-lived, stored in KV (same shape as nonce.ts's replay protection).
  *
  * This module only generates and checks codes — it never sees how they're
- * delivered. The route (routes/delegate-request-code.ts) emails the code via
- * lib/email.ts and never puts it in a response body.
+ * delivered. The route (routes/delegate-request-code.ts) decides: return the
+ * code directly (SIMULATED, the default) or email it via lib/email.ts
+ * (`"send_email": true`, never returned in that case).
  */
 import type { Env } from "./env";
 

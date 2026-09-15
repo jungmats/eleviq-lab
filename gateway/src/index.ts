@@ -23,8 +23,9 @@
  *                                                        decision, live
  *
  * Demo 3 — Delegate (is this agent acting for a specific person?):
- *   POST /api/delegate/request-code                      emails a one-time code to the
- *                                                        claimed address; never returns it
+ *   POST /api/delegate/request-code                      SIMULATED by default (returns the
+ *                                                        code); "send_email":true emails it
+ *                                                        for real instead, rate-limited
  *   GET  /api/delegate/account                            the protected resource; needs a
  *                                                        valid code for the claimed email
  *
@@ -131,7 +132,7 @@ function info(url: URL) {
       access_log: `${url.origin}/api/log — GET; summary + last 100 rows of every request to /api/identity/price-list`,
       rsl_license: `${url.origin}/.well-known/rsl.xml — GET; the STATED RSL license for /api/decide/deal-notes`,
       decide_resource: `${url.origin}/api/decide/deal-notes — GET; 200 for a verified agent declaring a permitted purpose (X-Agent-Purpose), else 403 + why`,
-      delegate_request_code: `${url.origin}/api/delegate/request-code — POST {"acting_for": "email"}; emails a one-time code to that address, rate-limited`,
+      delegate_request_code: `${url.origin}/api/delegate/request-code — POST {"acting_for": "email"}; SIMULATED, returns a code, unless {"send_email": true} which emails it instead (rate-limited)`,
       delegate_resource: `${url.origin}/api/delegate/account — GET; 200 with a valid code for the claimed email (X-Acting-For, X-Delegation-Code), else 401/403`,
     },
     reference: `${SITE}/reference/`,

@@ -30,7 +30,7 @@ cross-origin. Nothing is simulated — real Ed25519 signing and verification.
 |---|---|---|
 | **1 · Identify** | agent identity via Web Bot Auth | ✅ built — `/identity/` |
 | **2 · Decide** | policy-based access / refusal | ✅ built — `/decide/` |
-| **3 · Delegate** | agent acting on behalf of a user (real emailed one-time code) | ✅ built — `/delegate/` |
+| **3 · Delegate** | agent acting on behalf of a user (one-time code, simulated by default, or really emailed) | ✅ built — `/delegate/` |
 | 4 · Charge | HTTP 402 · Pay Per Crawl · x402 | planned |
 | **5 · Measure** | attribution dashboards | ✅ built — `/measure/` (Demo 1's log) + `insights.eleviq.solutions` (site traffic, behind Cloudflare Access) |
 | 6 · Sustain | post-ad monetization — scope tbd, likely several demos | planned |
@@ -47,7 +47,7 @@ See [`PLAN.md`](PLAN.md).
 | `POST /api/sign` | **test aid** — signs with a demo key so you can try the verified path with just curl. Not part of the security model. |
 | `GET /.well-known/rsl.xml` | Demo 2's STATED policy — a real, spec-shaped RSL license for `/api/decide/deal-notes` |
 | `GET /api/decide/deal-notes` | Demo 2's protected resource — `200` for a verified agent declaring a permitted `X-Agent-Purpose`, else `403` + why (or `401` if unverified) |
-| `POST /api/delegate/request-code` | Demo 3 — emails a one-time code to the claimed address (Resend); rate-limited; never returned in the response |
+| `POST /api/delegate/request-code` | Demo 3 — SIMULATED by default (returns the code); `"send_email": true` emails it via Resend instead (rate-limited, never returned) |
 | `GET /api/delegate/account` | Demo 3's protected resource — `200` with a valid code for the claimed email (`X-Acting-For`, `X-Delegation-Code`), else `401`/`403` |
 
 Trust is a single throwaway key — no OpenAI/Anthropic/etc. impersonation. The
