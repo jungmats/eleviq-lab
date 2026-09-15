@@ -38,11 +38,14 @@ export async function requestCode(env: Env, actingFor: string): Promise<string> 
 export type DelegationOutcome =
   | { outcome: "granted"; actingFor: string }
   | { outcome: "no-code"; actingFor: string | null }
-  | { outcome: "invalid-code"; actingFor: string };
+  | { outcome: "invalid-code"; actingFor: string }
+  | { outcome: "already-used"; actingFor: string };
 
 /**
- * Checks a claimed (email, code) pair. Single-use: a valid code is consumed
- * on success, same as Demo 1's nonce — presenting it again fails.
+ * Checks a claimed (email, code) pair. Single-use: a valid code is marked
+ * used (not deleted) on success, same idea as Demo 1's nonce — presenting it
+ * again fails, but distinguishably: "already used" rather than "wrong",
+ * since those mean different things to whoever's reading the response.
  */
 export async function checkDelegation(
   env: Env,
@@ -54,7 +57,8 @@ export async function checkDelegation(
   const key = kvKey(actingFor, code);
   const existing = await env.DELEGATION_CODES.get(key);
   if (!existing) return { outcome: "invalid-code", actingFor };
+  if (existing === "used") return { outcome: "already-used", actingFor };
 
-  await env.DELEGATION_CODES.delete(key);
+  await env.DELEGATION_CODES.put(key, "used", { expirationTtl: CODE_TTL_SECONDS });
   return { outcome: "granted", actingFor };
 }

@@ -26,7 +26,7 @@ export interface AccessLogEntry {
   /** Demo 3 (Delegate) only — the claimed X-Acting-For email, if any. */
   actingFor?: string | null;
   /** Demo 3 (Delegate) only — the delegation check's outcome. */
-  delegationOutcome?: "granted" | "no-code" | "invalid-code" | null;
+  delegationOutcome?: "granted" | "no-code" | "invalid-code" | "already-used" | null;
 }
 
 export function logAccess(env: Env, ctx: ExecutionContext, entry: AccessLogEntry): void {

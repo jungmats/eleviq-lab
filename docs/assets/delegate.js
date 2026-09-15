@@ -142,6 +142,14 @@ function interpret(httpStatus, data) {
       ],
     };
   }
+  if (data.reason === "already-used") {
+    return {
+      kind: "bad",
+      status: "⛔  REFUSED · 403",
+      reason: data.detail || "That code was already used — codes are single-use.",
+      facts: [["Acting for", data.acting_for ?? "—"], ["Decision", "already-used"]],
+    };
+  }
   if (data.reason === "invalid-code") {
     return {
       kind: "bad",

@@ -88,13 +88,21 @@ export async function handleAccount(request: Request, env: Env, ctx: ExecutionCo
     actingFor: delegation.actingFor,
     delegationOutcome: delegation.outcome,
   });
+  const titles = {
+    "no-code": "No delegation code presented",
+    "already-used": "Delegation code already used",
+    "invalid-code": "Delegation code doesn't match",
+  };
+  const details = {
+    "no-code":
+      "This resource is scoped to a specific person. Claim who you're acting for (X-Acting-For) and present a code obtained via POST /api/delegate/request-code (X-Delegation-Code).",
+    "already-used": `The code presented for "${delegation.actingFor}" was already used. Codes are single-use — request a fresh one.`,
+    "invalid-code": `The code presented for "${delegation.actingFor}" doesn't match a live one — wrong, expired, or never issued. Request a fresh one.`,
+  };
   return problem(status, {
     type: `${SITE}/delegate/#${delegation.outcome}`,
-    title: delegation.outcome === "no-code" ? "No delegation code presented" : "Delegation code invalid, expired, or already used",
-    detail:
-      delegation.outcome === "no-code"
-        ? "This resource is scoped to a specific person. Claim who you're acting for (X-Acting-For) and present a code obtained via POST /api/delegate/request-code (X-Delegation-Code)."
-        : `The code presented for "${delegation.actingFor}" doesn't match a live one. Request a fresh one.`,
+    title: titles[delegation.outcome],
+    detail: details[delegation.outcome],
     reason: delegation.outcome,
     acting_for: delegation.actingFor,
     teaser: TEASER,

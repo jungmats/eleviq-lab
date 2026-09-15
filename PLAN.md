@@ -6,7 +6,13 @@ acting for a specific email via a one-time code — code is returned in the API
 response (not emailed) for now, clearly labeled DEMO. Real email sending +
 rate-limiting is a deliberate later step (first real secret this lab needs).
 New KV (`DELEGATION_CODES`) + two `access_log` columns (`acting_for`,
-`delegation_outcome`). Not yet deployed.
+`delegation_outcome`). Deployed 2026-09-15, verified in production.
+
+Follow-ups from user testing: replaced the 3 scenario radios with a free-text
+code input (type the real one, a modified one, or leave it blank). Reused
+codes now say "already used" (a kept "used" marker) instead of the same
+"invalid" message as a wrong code — clearer, and both are real single-use
+enforcement either way.
 
 # ElevIQ Lab — Demo 2 (Decide)
 
