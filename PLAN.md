@@ -163,6 +163,21 @@ codes now say "already used" (a kept "used" marker) instead of the same
 "invalid" message as a wrong code — clearer, and both are real single-use
 enforcement either way.
 
+Added a "test it with a real agent" scenario to `/delegate/`'s own-tools
+section (ChatGPT Work + its email connector). First attempt (2026-09-15)
+failed before reaching the gateway: ChatGPT Work's cloud browser blocked a
+raw call to the bare gateway URL and a direct network call timed out.
+Retried pointing it at the human-facing `/delegate/` page instead (not the
+gateway URL directly) and it worked, though not fully autonomously: it
+initially tried the page's simulated in-page code instead of a real email
+and had to be told explicitly to send one; and once the email was sent, it
+refused to read the code out of the connected inbox itself, calling a
+one-time code an authentication secret it won't retrieve even with mailbox
+access, and asked the user to type the code in directly instead. That
+refusal is by design on ChatGPT Work's side, not a gateway limitation — the
+prompt on the page now asks for a real email up front and explains the
+refusal so it doesn't read as a bug.
+
 # ElevIQ Lab — Demo 2 (Decide)
 
 **Status (2026-09-14): deployed and live at `https://lab.eleviq.solutions/decide/`.**

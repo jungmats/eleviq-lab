@@ -132,6 +132,17 @@ curl -s -X POST https://eleviq-lab-gateway.gateway-worker.workers.dev/api/delega
   -H 'X-Acting-For: jane@example.com' -H 'X-Delegation-Code: 482913'</pre>
         <p>Drop <code>X-Delegation-Code</code>, or change one digit, to see the other two
           outcomes. Codes are single-use and expire after 5 minutes.</p>
+
+        <h3>C — Try it with a real agent and a real inbox</h3>
+        <p>This also works with a genuine third-party agent, not just curl. Connect
+          ChatGPT Work to an inbox you control, then copy this prompt:</p>
+        <pre class="wire">Try what's necessary to get access to the protected resource behind the Delegate
+demo at lab.eleviq.solutions, using my email for identification. Have it email
+you the code rather than showing it on the page.</pre>
+        <p>ChatGPT Work treats a one-time code as an authentication secret rather than
+          ordinary email content, so it won't read the code out of your inbox itself even
+          with mailbox access. It will instead ask you to open the email and enter the
+          code directly, which is the moment that actually proves the delegation.</p>
       </section>
 
     </main>
