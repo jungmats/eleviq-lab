@@ -24,33 +24,35 @@
 
       <section class="section step">
         <h2><span class="step-n">1</span> The problem</h2>
-        <p>A server can price a resource. There's no ordinary way for an autonomous agent to
-          pay for it — no card, no checkout page, no human present when the request happens.</p>
+        <p>A server can price a resource, but an autonomous agent has no ordinary way to pay
+          for it: no card, no checkout page, and no human present when the request happens.</p>
         <p>HTTP has had a status code for this since 1997: <code>402 Payment Required</code>.
           This demo uses it for real. The mechanism is
           <a href="https://www.x402.org/" target="_blank" rel="noopener">x402</a>, an open
-          protocol built on <code>402</code>: the server states a price, the agent signs a
+          protocol built on <code>402</code>. The server states a price, the agent signs a
           payment authorization, and a settlement happens on a public ledger.</p>
-        <p class="unlisted-note">This runs on <b>Base Sepolia</b>, a free practice copy of a
-          real blockchain, with <b>testnet USDC</b> — worth nothing. The signature, the
-          on-chain settlement, and the balance change are all real; only the money is fake.</p>
+        <p class="unlisted-note">This runs on
+          <a href="https://docs.base.org/chain/network-information#base-testnet-sepolia" target="_blank" rel="noopener"><b>Base Sepolia</b></a>,
+          a free test network that copies Coinbase's real Base blockchain, using testnet USDC
+          that has no value. The signature, the settlement, and the balance change are still
+          real. Only the money is fake.</p>
       </section>
 
       <section class="section step">
         <h2><span class="step-n">2</span> The demo</h2>
 
         <div class="agent-callout">
-          A private key is normally the one thing you never publish — whoever holds it can
-          spend the funds. This demo's key is public
+          A private key is normally the one thing you never publish, since whoever holds it
+          can spend the funds. This demo's key is public
           (<a href="../reference/charge-agent.json" target="_blank" rel="noopener"><code>reference/charge-agent.json</code></a>)
-          because the funds behind it are testnet USDC, worth nothing. That means you can use
-          this exact key to sign and send a real payment yourself, instead of taking this
-          page's word for it — see §4.
+          because the funds behind it are testnet USDC and worth nothing. That means you can
+          use this exact key to sign and send a real payment yourself instead of taking this
+          page's word for it. See §3.
         </div>
 
-        <p class="step-lead">Balances below are fetched live from Base Sepolia, right now —
-          not hardcoded. Pick a scenario, then watch them change (or not) after a real
-          request.</p>
+        <p class="step-lead">Balances below come from a live read of Base Sepolia, not a
+          hardcoded number. Pick a scenario to see them change after a real request, or stay
+          the same if it's declined.</p>
 
         <table class="balances" id="balances">
           <thead>
@@ -80,15 +82,15 @@
                   <span>
                     <span class="s-name">Pay the real price</span><br>
                     <span class="s-desc">Request the report, get a 402, sign a real payment
-                      authorization, retry — a genuine settlement.</span>
+                      authorization, and retry. This settles for real.</span>
                   </span>
                 </label>
                 <label>
                   <input type="radio" name="mode" value="insufficient">
                   <span>
                     <span class="s-name">Request a price above the wallet's balance</span><br>
-                    <span class="s-desc">Same resource, deliberately priced far higher for
-                      this scenario — a real decline, not a scripted one.</span>
+                    <span class="s-desc">Same resource, priced far higher for this scenario
+                      on purpose. The decline is real, not scripted.</span>
                   </span>
                 </label>
                 <label>
@@ -111,11 +113,11 @@
             <dl class="facts" id="facts" hidden></dl>
           </div>
 
-          <p class="step-lead">Paying always takes two requests, shown below: first the agent
-            asks for the resource with no payment attached, and the server refuses with a
-            price (step 1). The agent then resends the <i>same</i> request with a signed
-            payment attached, and the server's second response is the real outcome — the
-            resource if it settles, or why not if it doesn't (step 2).</p>
+          <p>Paying always takes two requests, shown below. First the agent asks for the
+            resource without payment attached, and the server responds with a price instead
+            (step 1). The agent then resends the <i>same</i> request with a signed payment
+            attached. The server's second response is the real outcome: the resource if
+            payment settles, or the reason why not if it fails (step 2).</p>
 
           <div id="exchanges"></div>
         </div>
@@ -124,7 +126,7 @@
           <span class="label">Request log</span>
           <ol id="log"></ol>
         </div>
-        <p class="hint">That list is only in your browser — it disappears on refresh. Every
+        <p class="hint">That list is only in your browser. It disappears on refresh. Every
           request here is also logged server-side, same as the rest of this lab.</p>
       </section>
 
@@ -134,13 +136,13 @@
 
         <h3>A — See the price, nothing to install</h3>
         <pre class="wire">curl -i https://eleviq-lab-gateway.gateway-worker.workers.dev/api/charge/report</pre>
-        <p>Returns <code>402</code> with the exact x402 payment requirements — price, asset
+        <p>Returns <code>402</code> with the exact x402 payment requirements: price, asset
           contract, network, and where payment goes.</p>
 
         <h3>B — Complete the payment yourself (Node.js 18+)</h3>
         <p>Completing it needs an EIP-712 signature over an EIP-3009
-          <code>transferWithAuthorization</code> message — real wallet cryptography, not a
-          curl flag.</p>
+          <code>transferWithAuthorization</code> message. That's real wallet cryptography, not
+          something a curl flag can do.</p>
         <pre class="wire">mkdir charge && cd charge
 npm init -y && npm install viem
 
@@ -148,11 +150,11 @@ curl -O https://lab.eleviq.solutions/reference/charge-pay.mjs
 curl -O https://lab.eleviq.solutions/reference/charge-agent.json
 
 node charge-pay.mjs --tier standard</pre>
-        <p><code>charge-pay.mjs</code> is ~50 lines: fetch the price, sign a
+        <p><code>charge-pay.mjs</code> is about 50 lines. It fetches the price, signs a
           <code>transferWithAuthorization</code> authorization for it with
-          <a href="https://viem.sh/" target="_blank" rel="noopener">viem</a>, resend with that
-          signature base64-encoded in an <code>X-PAYMENT</code> header. Same steps this page's
-          own console runs.</p>
+          <a href="https://viem.sh/" target="_blank" rel="noopener">viem</a>, and resends the
+          request with that signature base64-encoded in an <code>X-PAYMENT</code> header.
+          These are the same steps this page's own console runs.</p>
         <p>Try <code>--tier premium</code> to see the same insufficient-funds decline as the
           console's second scenario.</p>
       </section>

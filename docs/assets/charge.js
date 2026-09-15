@@ -227,7 +227,7 @@ async function run() {
           ["Amount", `${p.amount_usdc} USDC`],
           [
             "Transaction",
-            `<a href="${p.explorer}" target="_blank" rel="noopener">${p.transaction.slice(0, 14)}… ↗</a> — independently checkable on Base Sepolia's own explorer, not this page's word for it`,
+            `<a href="${p.explorer}" target="_blank" rel="noopener">${p.transaction.slice(0, 14)}… ↗</a>. You can check this independently on Base Sepolia's own explorer instead of taking this page's word for it.`,
           ],
         ]);
         logLine(mode, "ok", "PAID");
@@ -241,7 +241,7 @@ async function run() {
       }
     } else if (mode === "replay") {
       if (!lastPayment) {
-        setVerdict("warn", "⚠️  Nothing to replay yet", "Run \"Pay the real price\" first — this replays that exact payment.", []);
+        setVerdict("warn", "⚠️  Nothing to replay yet", "Run \"Pay the real price\" first. This replays that exact payment.", []);
         logLine(mode, "warn", "SKIPPED — no prior payment");
         return;
       }
@@ -261,7 +261,7 @@ async function run() {
       } else {
         setVerdict("bad", `⛔  REJECTED · ${result.status}`, result.body.detail || "Already used.", [
           ["Reason", result.body.reason || "—"],
-          ["Note", "The token contract itself tracks this — not something this gateway has to remember."],
+          ["Note", "The token contract itself tracks this. It isn't something this gateway has to remember."],
         ]);
         logLine(mode, "bad", "REJECTED — already used");
       }
