@@ -41,3 +41,9 @@ id = "f9e4cafcbe4d40839e2cb2ac868e9ffe"
 #   local:  add RESEND_API_KEY=re_... to gateway/.dev.vars (gitignored)
 #   remote: npx wrangler secret put RESEND_API_KEY
 # Sends the real Demo 3 delegation-code email — see src/lib/email.ts.
+
+# CHARGE_RELAYER_KEY is a secret, not set here — Demo 4 (Charge)'s relayer /
+# payTo private key on Base Sepolia. Generate with `npm run charge-keys`:
+#   local:  add CHARGE_RELAYER_KEY=0x... to gateway/.dev.vars (gitignored)
+#   remote: npx wrangler secret put CHARGE_RELAYER_KEY
+# See src/lib/x402.ts.

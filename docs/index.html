@@ -72,13 +72,15 @@
             <p class="stack">Technologies: email verification code (simulated) · OAuth device flow (later)</p>
           </div>
 
-          <div class="stage is-soon">
-            <span class="badge soon">Coming</span>
+          <div class="stage">
+            <span class="badge live">Live</span>
             <h3>Charge</h3>
-            <p class="stage-sub">What does access cost?</p>
-            <p>Payment required over HTTP 402 — Cloudflare Pay Per Crawl for the managed
-              path, and x402 for open, on-chain settlement an agent can complete unattended.</p>
-            <p class="stack">Technologies: HTTP 402 · Cloudflare Pay Per Crawl · x402</p>
+            <p class="stage-sub">How does an agent pay for a resource?</p>
+            <p>A real HTTP 402 flow: the server states a price, the agent signs a payment
+              authorization, and a genuine settlement happens on a public ledger — no card,
+              no checkout page, no human in the loop.</p>
+            <a class="button" href="charge/">Open demo →</a>
+            <p class="stack">Technologies: HTTP 402 · x402 · Base Sepolia · USDC</p>
           </div>
 
           <div class="stage">

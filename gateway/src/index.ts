@@ -29,7 +29,10 @@
  *   GET  /api/delegate/account                            the protected resource; needs a
  *                                                        valid code for the claimed email
  *
- * Later: HTTP 402 (Charge).
+ * Demo 4 — Charge (how does an agent pay for a resource, HTTP 402):
+ *   GET  /api/charge/report                               the protected resource; no
+ *                                                        X-PAYMENT -> 402 + price; a real,
+ *                                                        settled x402 payment -> 200 + proof
  *
  * The demo site that explains and drives this lives separately, on GitHub Pages
  * at https://lab.eleviq.solutions
@@ -43,10 +46,11 @@ import { handleDealNotes } from "./routes/deal-notes";
 import { handleLicense } from "./routes/license";
 import { handleRequestCode } from "./routes/delegate-request-code";
 import { handleAccount } from "./routes/delegate-account";
+import { handleCharge } from "./routes/charge";
 import { json, preflight } from "./lib/http";
 import type { Env } from "./lib/env";
 
-const VERSION = "2026-09-14-demo3";
+const VERSION = "2026-09-15-demo4-charge";
 const SITE = "https://lab.eleviq.solutions";
 
 export default {
@@ -96,6 +100,9 @@ async function route(request: Request, path: string, url: URL, env: Env, ctx: Ex
   if (path === "/api/delegate/account" && request.method === "GET") {
     return handleAccount(request, env, ctx);
   }
+  if (path === "/api/charge/report" && request.method === "GET") {
+    return handleCharge(request, env, ctx);
+  }
 
   return json(
     {
@@ -111,6 +118,7 @@ async function route(request: Request, path: string, url: URL, env: Env, ctx: Ex
         "/api/decide/deal-notes",
         "/api/delegate/request-code",
         "/api/delegate/account",
+        "/api/charge/report",
       ],
     },
     404,
@@ -134,6 +142,7 @@ function info(url: URL) {
       decide_resource: `${url.origin}/api/decide/deal-notes — GET; 200 for a verified agent declaring a permitted purpose (X-Agent-Purpose), else 403 + why`,
       delegate_request_code: `${url.origin}/api/delegate/request-code — POST {"acting_for": "email"}; SIMULATED, returns a code, unless {"send_email": true} which emails it instead (rate-limited)`,
       delegate_resource: `${url.origin}/api/delegate/account — GET; 200 with a valid code for the claimed email (X-Acting-For, X-Delegation-Code), else 401/403`,
+      charge_resource: `${url.origin}/api/charge/report — GET; 402 + price with no X-PAYMENT header, 200 + resource + settlement proof with a valid one (real Base Sepolia x402 payment)`,
     },
     reference: `${SITE}/reference/`,
   });

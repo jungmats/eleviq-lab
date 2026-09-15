@@ -10,11 +10,13 @@
     "deploy:gateway": "wrangler deploy --config gateway/wrangler.toml",
     "dev:site": "npm run build && npx --yes http-server docs -p 8000 -c-1 --silent",
     "keys": "node scripts/gen-keys.mjs",
+    "charge-keys": "node scripts/gen-charge-keys.mjs",
     "typecheck": "tsc -p gateway/tsconfig.json"
   },
   "dependencies": {
-    "web-bot-auth": "0.2.0",
-    "fast-xml-parser": "^5.11.1"
+    "fast-xml-parser": "^5.11.1",
+    "viem": "^2.56.5",
+    "web-bot-auth": "0.2.0"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20260910.1",

@@ -1,3 +1,76 @@
+# ElevIQ Lab — Demo 4 (Charge)
+
+**Built 2026-09-15, NOT yet deployed — pending user review and wallet funding.**
+`/charge/`, `GET /api/charge/report`. A real x402 (HTTP 402) payment flow: no
+X-PAYMENT header → `402` + price; a genuine signed-and-settled payment →
+`200` + resource + on-chain proof. Runs on Base Sepolia (free testnet) with
+testnet USDC — nothing of real value moves.
+
+**Facilitator decision (agreed with the user before building):** self-hosted,
+not Coinbase's CDP-hosted one. x402 is explicitly permissionless — "anyone
+can run a facilitator" — so the gateway itself plays both merchant and
+facilitator: `gateway/src/lib/x402.ts` verifies the EIP-712 signature and
+dry-runs the settlement via `eth_call` (free, catches insufficient funds and
+reused nonces before spending any gas), then actually submits it if that
+dry-run succeeds. Avoids a dependency on a third-party account this demo
+doesn't need. One wallet plays both the facilitator's relayer (submits the
+tx, pays gas) and the merchant's `payTo` (receives payment) —
+`scripts/gen-charge-keys.mjs` generates it; private key is
+`CHARGE_RELAYER_KEY`, a Cloudflare secret, never committed.
+
+**On-chain facts verified directly against the contract, not copied from a
+doc** — this mattered: real x402 integrations have shipped broken because
+they assumed USDC's EIP-712 domain name is `"USDC"` when a given deployment
+actually reports `"USD Coin"` (a mismatched domain silently fails every
+signature). Called `name()`/`version()`/`decimals()` on Base Sepolia's real
+USDC contract (`0x036CbD53842c5426634e7929541eC2318f3dCF7e`) over its public
+RPC before writing any code: `name="USDC"`, `version="2"`, `decimals=6` —
+confirmed, not assumed.
+
+**Two wallets, same "publish it on purpose" convention as Demo 1's
+demo-agent key:** the demo PAYER wallet's private key is committed and
+published (`gateway/keys/charge-agent.json` → `docs/reference/`) so anyone
+can play the paying agent — it's testnet-worthless, so there's no reason to
+guard it. The relayer/payTo wallet's key is the one that's actually kept
+secret, mirroring how a real deployment would.
+
+**Three scenarios**, same fixed-choice shape as Demos 1–2: pay the real
+price (full 402 → sign → settle → 200 round trip); request a price
+deliberately set above what the demo wallet is funded to (a genuine
+`insufficient funds` on-chain decline, not scripted); replay an already-used
+payment (resent verbatim — rejected by EIP-3009's own on-chain nonce
+tracking, the same real replay protection Demo 1 and Demo 3 rely on, not
+something this gateway re-implements).
+
+**Verified locally (real Base Sepolia calls throughout, no mocking):** a
+signed payment for an unfunded wallet correctly reached the real contract
+and came back with its actual revert reason (`ERC20: transfer amount
+exceeds balance`) — proving signature recovery, EIP-712 domain match, and
+the on-chain dry-run all work, all before any wallet is funded. Full page
+verified in headless Chromium: live balance panel, live 402 quote panel,
+the two-step exchange render, verdict/log — screenshotted.
+
+**Not yet done:** fund the demo payer wallet (testnet USDC) and the
+relayer wallet (testnet ETH, for gas) via a faucet — real external step,
+handed to the user. Once funded, re-verify the success path (`200` +
+settlement) and the replay-rejection path for real, then deploy
+(`npm run deploy:gateway` + the `charge_status`/`charge_amount`/
+`charge_tx_hash` D1 migration + `wrangler secret put CHARGE_RELAYER_KEY`) on
+explicit go-ahead, same as every prior demo.
+
+**Files touched:** `gateway/src/lib/x402.ts` + `routes/charge.ts` (new),
+`gateway/src/lib/log.ts` + `schema.sql` (new charge_* columns),
+`gateway/src/lib/env.ts` + `wrangler.toml` (`CHARGE_RELAYER_KEY`),
+`gateway/src/lib/http.ts` (`X-PAYMENT` CORS allow-header,
+`X-PAYMENT-RESPONSE` expose-header), `gateway/src/index.ts` (routing,
+`VERSION` bump), `scripts/gen-charge-keys.mjs` + `gateway/keys/charge-agent.json`
+(new), `build/charge-sign.entry.js` + `build/bundle.mjs` (viem browser
+bundle + key publishing), `docs/charge/index.html` + `docs/assets/charge.js`
+(new), `docs/lab.css` (balance table + multi-step exchange styles),
+`docs/index.html` (landing card flipped to live, reframed around "how does
+an agent pay" per user feedback — no cross-references to other demos, no
+Pay Per Crawl mention), `package.json` (`viem` dependency).
+
 # ElevIQ Lab — Demo 3 (Delegate)
 
 Built 2026-09-14, simulated version: `/delegate/`, `POST

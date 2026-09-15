@@ -4,7 +4,8 @@ const CORS = {
   "access-control-allow-origin": "*",
   "access-control-allow-methods": "GET, POST, OPTIONS",
   "access-control-allow-headers":
-    "Content-Type, Accept, Signature, Signature-Input, Signature-Agent, X-Demo-Agent-Claim, X-Agent-Purpose, X-Acting-For, X-Delegation-Code",
+    "Content-Type, Accept, Signature, Signature-Input, Signature-Agent, X-Demo-Agent-Claim, X-Agent-Purpose, X-Acting-For, X-Delegation-Code, X-PAYMENT",
+  "access-control-expose-headers": "X-PAYMENT-RESPONSE",
   "access-control-max-age": "600",
 };
 

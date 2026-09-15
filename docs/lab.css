@@ -587,6 +587,65 @@ pre.wire .muted { color: var(--text-muted); }
 
 .log-table tbody tr:last-child td { border-bottom: 0; }
 
+/* --- Demo 4 (Charge) balance panel + multi-step exchange --------- */
+
+.balances {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.6rem 0 1rem;
+  font-size: 0.85rem;
+}
+
+.balances th,
+.balances td {
+  border: 1px solid var(--border);
+  padding: 0.55rem 0.8rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.balances thead th {
+  background: var(--code-bg);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.balances td.addr {
+  font-family: var(--mono);
+  font-size: 0.76rem;
+  word-break: break-all;
+  color: var(--text-muted);
+}
+
+.balances td.amount {
+  font-family: var(--mono);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.balances td.amount .delta {
+  display: block;
+  font-weight: 600;
+  font-size: 0.78rem;
+}
+
+.balances td.amount .delta.down { color: var(--bad); }
+.balances td.amount .delta.up { color: var(--ok); }
+
+.exchange-step { margin-top: 1.1rem; }
+
+.exchange-step .step-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin: 0 0 0.3rem;
+}
+
 /* --- responsive ------------------------------------------------- */
 
 @media (max-width: 680px) {

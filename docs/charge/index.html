@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="gateway" content="https://eleviq-lab-gateway.gateway-worker.workers.dev">
+  <title>Charge — ElevIQ Lab</title>
+  <link rel="icon" href="../assets/eleviq_icon.png">
+  <link rel="stylesheet" href="../styles.css">
+  <link rel="stylesheet" href="../lab.css">
+</head>
+<body>
+
+  <header>
+    <a href="https://eleviq.solutions"><img src="../assets/eleviq_logo_v1.6.png" alt="ElevIQ Logo"></a>
+    <p class="brand-line">ElevIQ Lab</p>
+    <p><b>Charge — agent payment</b></p>
+    <p class="lab-crumbs"><a href="../">Lab home</a> &nbsp;·&nbsp; Demo 4 of 6 &nbsp;·&nbsp; Charge</p>
+  </header>
+
+  <div class="container wide">
+    <main>
+
+      <section class="section step">
+        <h2><span class="step-n">1</span> The problem</h2>
+        <p>Most of what a website could sell to a visiting agent — a report, a dataset, one
+          API call — usually just sits behind a wall marked "free" or "not available." Not
+          because it has no value, but because there's no ordinary way for an
+          <i>autonomous</i> agent to actually complete a purchase: no card number to type, no
+          checkout page to click through, no human standing by at the moment of the request.</p>
+        <p>HTTP has had a status code for exactly this since 1997 — <code>402 Payment
+          Required</code> — almost entirely unused until now. This demo turns a real resource
+          behind it into something an agent can actually pay for, on its own, with no human
+          involved once it starts.</p>
+        <p>The question here isn't who owes money for this. It's <b>how</b> an agent, acting
+          entirely on its own, completes a real payment for something a server has priced.</p>
+        <p>The mechanism is <b><a href="https://www.x402.org/" target="_blank" rel="noopener">x402</a></b>,
+          an open protocol built directly on <code>402</code>: the server states a price, the
+          agent signs a payment authorization, and a real settlement happens on a public
+          ledger — no card network, no bank, no account for either side to sign up for.</p>
+        <p class="unlisted-note">Real money never changes hands here: this runs on <b>Base
+          Sepolia</b>, a free practice copy of a real blockchain, using <b>testnet USDC</b> —
+          worthless-by-design digital dollars made for exactly this kind of demo. Everything
+          else about the flow — the signature, the on-chain settlement, the balance change —
+          is genuine, not simulated.</p>
+      </section>
+
+      <section class="section step">
+        <h2><span class="step-n">2</span> The demo</h2>
+
+        <div class="agent-callout">
+          One demo wallet plays the paying agent throughout — its private key is published on
+          purpose (<a href="../reference/charge-agent.json" target="_blank" rel="noopener"><code>reference/charge-agent.json</code></a>)
+          so anyone can run this. It's kept topped up with a small amount of testnet USDC —
+          worth nothing, so there's no reason to guard it.
+        </div>
+
+        <p class="step-lead">Balances below are fetched live from Base Sepolia, right now —
+          not hardcoded. Pick a scenario, then watch them change (or not) after a real
+          request.</p>
+
+        <table class="balances" id="balances">
+          <thead>
+            <tr><th>Wallet</th><th>Role</th><th>USDC balance</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="addr" id="bal-agent-addr">—</td>
+              <td>Agent (payer)</td>
+              <td class="amount" id="bal-agent">Loading…</td>
+            </tr>
+            <tr>
+              <td class="addr" id="bal-payto-addr">—</td>
+              <td>This resource (payTo)</td>
+              <td class="amount" id="bal-payto">Loading…</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="console">
+          <div class="console-controls">
+            <div class="control-row">
+              <span class="label">What should the agent try?</span>
+              <div class="scenario" id="scenario">
+                <label>
+                  <input type="radio" name="mode" value="pay" checked>
+                  <span>
+                    <span class="s-name">Pay the real price</span><br>
+                    <span class="s-desc">Request the report, get a 402, sign a real payment
+                      authorization, retry — a genuine settlement.</span>
+                  </span>
+                </label>
+                <label>
+                  <input type="radio" name="mode" value="insufficient">
+                  <span>
+                    <span class="s-name">Request a price above the wallet's balance</span><br>
+                    <span class="s-desc">Same resource, deliberately priced far higher for
+                      this scenario — a real decline, not a scripted one.</span>
+                  </span>
+                </label>
+                <label>
+                  <input type="radio" name="mode" value="replay">
+                  <span>
+                    <span class="s-name">Replay an already-used payment</span><br>
+                    <span class="s-desc">Resend the exact payment from your last successful
+                      run. Requires running "Pay the real price" first.</span>
+                  </span>
+                </label>
+              </div>
+            </div>
+
+            <button class="send-btn" id="send">Run scenario →</button>
+          </div>
+
+          <div class="verdict" id="verdict">
+            <div class="status">— Awaiting a run</div>
+            <p class="reason">No request sent yet.</p>
+            <dl class="facts" id="facts" hidden></dl>
+          </div>
+
+          <div id="exchanges"></div>
+        </div>
+
+        <div class="log">
+          <span class="label">Request log</span>
+          <ol id="log"></ol>
+        </div>
+        <p class="hint">That list is only in your browser — it disappears on refresh. Every
+          request here is also logged server-side, same as the rest of this lab.</p>
+      </section>
+
+      <section class="section step">
+        <h2><span class="step-n">3</span> Requested vs settled</h2>
+        <p>The left panel is fetched live on page load. The right panel fills in once a
+          payment actually settles — an independently checkable fact, not this page's word
+          for it.</p>
+        <div class="compare">
+          <div>
+            <h3>Requested (fetched live)</h3>
+            <p class="pane-title">GET /api/charge/report — 402 body</p>
+            <pre class="wire" id="stated-quote">Loading…</pre>
+          </div>
+          <div>
+            <h3>Settled (on-chain proof)</h3>
+            <div id="settled-panel">
+              <p class="hint" style="margin-top:0">Run "Pay the real price" above to fill this
+                in.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section step">
+        <h2><span class="step-n">4</span> Test it from your own tools</h2>
+        <p>The console above is a convenience. The gateway is a plain public HTTP API.</p>
+
+        <h3>A — See the price, nothing to install</h3>
+        <pre class="wire">curl -i https://eleviq-lab-gateway.gateway-worker.workers.dev/api/charge/report</pre>
+        <p>Returns <code>402</code> with the exact x402 payment requirements — price, asset
+          contract, network, and where payment goes.</p>
+
+        <h3>B — Complete the payment yourself</h3>
+        <p>Completing it needs an EIP-712 signature over an EIP-3009
+          <code>transferWithAuthorization</code> message — real wallet cryptography, not a
+          one-line curl flag. The published demo wallet
+          (<a href="../reference/charge-agent.json" target="_blank" rel="noopener">reference/charge-agent.json</a>)
+          holds a real private key on Base Sepolia; this page's own script
+          (<a href="../assets/charge.js" target="_blank" rel="noopener">assets/charge.js</a>)
+          is the reference implementation for building and sending that signature, using
+          <a href="https://viem.sh/" target="_blank" rel="noopener">viem</a>. The resulting
+          base64 payload goes in an <code>X-PAYMENT</code> header on a repeat of the same
+          request.</p>
+      </section>
+
+    </main>
+  </div>
+
+  <footer>
+    &copy; 2025–2026 ElevIQ. &nbsp;·&nbsp; <a href="https://eleviq.solutions">eleviq.solutions</a>
+    &nbsp;·&nbsp; <a href="../">ElevIQ Lab</a>
+  </footer>
+
+  <script type="module" src="../assets/charge.js"></script>
+</body>
+</html>
