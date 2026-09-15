@@ -24,36 +24,28 @@
 
       <section class="section step">
         <h2><span class="step-n">1</span> The problem</h2>
-        <p>Most of what a website could sell to a visiting agent — a report, a dataset, one
-          API call — usually just sits behind a wall marked "free" or "not available." Not
-          because it has no value, but because there's no ordinary way for an
-          <i>autonomous</i> agent to actually complete a purchase: no card number to type, no
-          checkout page to click through, no human standing by at the moment of the request.</p>
-        <p>HTTP has had a status code for exactly this since 1997 — <code>402 Payment
-          Required</code> — almost entirely unused until now. This demo turns a real resource
-          behind it into something an agent can actually pay for, on its own, with no human
-          involved once it starts.</p>
-        <p>The question here isn't who owes money for this. It's <b>how</b> an agent, acting
-          entirely on its own, completes a real payment for something a server has priced.</p>
-        <p>The mechanism is <b><a href="https://www.x402.org/" target="_blank" rel="noopener">x402</a></b>,
-          an open protocol built directly on <code>402</code>: the server states a price, the
-          agent signs a payment authorization, and a real settlement happens on a public
-          ledger — no card network, no bank, no account for either side to sign up for.</p>
-        <p class="unlisted-note">Real money never changes hands here: this runs on <b>Base
-          Sepolia</b>, a free practice copy of a real blockchain, using <b>testnet USDC</b> —
-          worthless-by-design digital dollars made for exactly this kind of demo. Everything
-          else about the flow — the signature, the on-chain settlement, the balance change —
-          is genuine, not simulated.</p>
+        <p>A server can price a resource. There's no ordinary way for an autonomous agent to
+          pay for it — no card, no checkout page, no human present when the request happens.</p>
+        <p>HTTP has had a status code for this since 1997: <code>402 Payment Required</code>.
+          This demo uses it for real. The mechanism is
+          <a href="https://www.x402.org/" target="_blank" rel="noopener">x402</a>, an open
+          protocol built on <code>402</code>: the server states a price, the agent signs a
+          payment authorization, and a settlement happens on a public ledger.</p>
+        <p class="unlisted-note">This runs on <b>Base Sepolia</b>, a free practice copy of a
+          real blockchain, with <b>testnet USDC</b> — worth nothing. The signature, the
+          on-chain settlement, and the balance change are all real; only the money is fake.</p>
       </section>
 
       <section class="section step">
         <h2><span class="step-n">2</span> The demo</h2>
 
         <div class="agent-callout">
-          One demo wallet plays the paying agent throughout — its private key is published on
-          purpose (<a href="../reference/charge-agent.json" target="_blank" rel="noopener"><code>reference/charge-agent.json</code></a>)
-          so anyone can run this. It's kept topped up with a small amount of testnet USDC —
-          worth nothing, so there's no reason to guard it.
+          A private key is normally the one thing you never publish — whoever holds it can
+          spend the funds. This demo's key is public
+          (<a href="../reference/charge-agent.json" target="_blank" rel="noopener"><code>reference/charge-agent.json</code></a>)
+          because the funds behind it are testnet USDC, worth nothing. That means you can use
+          this exact key to sign and send a real payment yourself, instead of taking this
+          page's word for it — see §4.
         </div>
 
         <p class="step-lead">Balances below are fetched live from Base Sepolia, right now —
@@ -160,17 +152,24 @@
         <p>Returns <code>402</code> with the exact x402 payment requirements — price, asset
           contract, network, and where payment goes.</p>
 
-        <h3>B — Complete the payment yourself</h3>
+        <h3>B — Complete the payment yourself (Node.js 18+)</h3>
         <p>Completing it needs an EIP-712 signature over an EIP-3009
           <code>transferWithAuthorization</code> message — real wallet cryptography, not a
-          one-line curl flag. The published demo wallet
-          (<a href="../reference/charge-agent.json" target="_blank" rel="noopener">reference/charge-agent.json</a>)
-          holds a real private key on Base Sepolia; this page's own script
-          (<a href="../assets/charge.js" target="_blank" rel="noopener">assets/charge.js</a>)
-          is the reference implementation for building and sending that signature, using
-          <a href="https://viem.sh/" target="_blank" rel="noopener">viem</a>. The resulting
-          base64 payload goes in an <code>X-PAYMENT</code> header on a repeat of the same
-          request.</p>
+          curl flag.</p>
+        <pre class="wire">mkdir charge && cd charge
+npm init -y && npm install viem
+
+curl -O https://lab.eleviq.solutions/reference/charge-pay.mjs
+curl -O https://lab.eleviq.solutions/reference/charge-agent.json
+
+node charge-pay.mjs --tier standard</pre>
+        <p><code>charge-pay.mjs</code> is ~50 lines: fetch the price, sign a
+          <code>transferWithAuthorization</code> authorization for it with
+          <a href="https://viem.sh/" target="_blank" rel="noopener">viem</a>, resend with that
+          signature base64-encoded in an <code>X-PAYMENT</code> header. Same steps this page's
+          own console runs.</p>
+        <p>Try <code>--tier premium</code> to see the same insufficient-funds decline as the
+          console's second scenario.</p>
       </section>
 
     </main>
