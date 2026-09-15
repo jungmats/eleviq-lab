@@ -181,19 +181,6 @@ function logLine(mode, kind, text) {
   );
 }
 
-function fillSettledPanel(payResult) {
-  const p = payResult.body.payment;
-  $("settled-panel").innerHTML = `
-    <dl class="facts">
-      <dt>Amount</dt><dd>${p.amount_usdc} USDC</dd>
-      <dt>Payer</dt><dd style="word-break:break-all">${p.payer}</dd>
-      <dt>Paid to</dt><dd style="word-break:break-all">${p.payTo}</dd>
-      <dt>Transaction</dt><dd><a href="${p.explorer}" target="_blank" rel="noopener">${p.transaction.slice(0, 14)}… ↗</a></dd>
-    </dl>
-    <p class="hint">That link goes to Base Sepolia's own block explorer — independent
-      confirmation this really settled, not this page's word for it.</p>`;
-}
-
 /* ---------- scenario runner ---------- */
 
 let lastPayment = null; // { target, header } — for the replay scenario
@@ -235,10 +222,13 @@ async function run() {
       if (result.status === 200) {
         lastPayment = { target: quote.target, header };
         await refreshBalances();
-        fillSettledPanel(result);
+        const p = result.body.payment;
         setVerdict("ok", "✅  PAID · 200", "Signature verified, settlement confirmed on Base Sepolia.", [
-          ["Amount", `${result.body.payment.amount_usdc} USDC`],
-          ["Transaction", result.body.payment.transaction],
+          ["Amount", `${p.amount_usdc} USDC`],
+          [
+            "Transaction",
+            `<a href="${p.explorer}" target="_blank" rel="noopener">${p.transaction.slice(0, 14)}… ↗</a> — independently checkable on Base Sepolia's own explorer, not this page's word for it`,
+          ],
         ]);
         logLine(mode, "ok", "PAID");
       } else {
@@ -286,14 +276,15 @@ async function run() {
 $("send").addEventListener("click", run);
 
 /* ---------- initial live state ---------- */
+// Silently learns payTo's address (only known once a quote is fetched) so
+// the balance panel can show both wallets before any scenario is run.
 
 (async () => {
   try {
     const quote = await fetchQuote("standard");
-    $("stated-quote").textContent = JSON.stringify(quote.body, null, 2);
     if (quote.body.accepts?.[0]) payToAddress = quote.body.accepts[0].payTo;
-  } catch (err) {
-    $("stated-quote").textContent = `Could not fetch: ${err}`;
+  } catch {
+    // Balance panel just stays on "Loading…" — not fatal, no visible quote panel depends on this.
   }
   try {
     await refreshBalances();

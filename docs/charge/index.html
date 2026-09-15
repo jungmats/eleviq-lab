@@ -111,6 +111,12 @@
             <dl class="facts" id="facts" hidden></dl>
           </div>
 
+          <p class="step-lead">Paying always takes two requests, shown below: first the agent
+            asks for the resource with no payment attached, and the server refuses with a
+            price (step 1). The agent then resends the <i>same</i> request with a signed
+            payment attached, and the server's second response is the real outcome — the
+            resource if it settles, or why not if it doesn't (step 2).</p>
+
           <div id="exchanges"></div>
         </div>
 
@@ -123,28 +129,7 @@
       </section>
 
       <section class="section step">
-        <h2><span class="step-n">3</span> Requested vs settled</h2>
-        <p>The left panel is fetched live on page load. The right panel fills in once a
-          payment actually settles — an independently checkable fact, not this page's word
-          for it.</p>
-        <div class="compare">
-          <div>
-            <h3>Requested (fetched live)</h3>
-            <p class="pane-title">GET /api/charge/report — 402 body</p>
-            <pre class="wire" id="stated-quote">Loading…</pre>
-          </div>
-          <div>
-            <h3>Settled (on-chain proof)</h3>
-            <div id="settled-panel">
-              <p class="hint" style="margin-top:0">Run "Pay the real price" above to fill this
-                in.</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section class="section step">
-        <h2><span class="step-n">4</span> Test it from your own tools</h2>
+        <h2><span class="step-n">3</span> Test it from your own tools</h2>
         <p>The console above is a convenience. The gateway is a plain public HTTP API.</p>
 
         <h3>A — See the price, nothing to install</h3>
