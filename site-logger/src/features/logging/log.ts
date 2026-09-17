@@ -1,4 +1,4 @@
-import type { Env } from "./env";
+import type { Env } from "../../lib/env";
 import type { VisitorCategory } from "./classify";
 
 export interface PageViewEntry {
