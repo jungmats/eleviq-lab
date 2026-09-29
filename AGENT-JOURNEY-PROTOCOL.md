@@ -81,8 +81,10 @@ and its own demo page. It does not add routes to `gateway/`.
 
 - It keeps the carve-out a move rather than a rewrite.
 - It reuses lab code through **adapters**: identity via the gateway's
-  `checkIdentity()`, user binding via `checkDelegation()` with the same
-  `DELEGATION_CODES` KV namespace bound to both Workers.
+  `checkIdentity()`, user binding via the Delegate demo's code functions,
+  but with the journey Worker's **own** KV namespace. The Worker issues its
+  own codes (`POST /api/journey/{id}/verification-code`), scoped to one
+  journey, so a code from one journey cannot complete another.
 - For a customer, the adapters are swapped for their own identity and login.
 
 ### 4.2 The journey definition is data
@@ -109,7 +111,7 @@ dependency-free and the schemas can be emitted unchanged to Arazzo and MCP.
 journey definition (JSON)
         │
         ▼
-engine: start() · advance() · cancel()        ← pure, unit-tested, no I/O
+engine: start() · prepareStep() + applyStep() · cancel()   ← pure, unit-tested, no I/O
         │  accept(newState, result) | reject(reason, details)
         ▼
 transports:  HTTP (phase 3) · MCP (phase 7) · customer proxy (phase 8)
@@ -169,8 +171,12 @@ require `human_present: true`.
 - Tables `journeys` and `journey_events` in the journey Worker's own D1.
 - Sinks configured, not coded: D1 on by default, optional webhook forwarder.
 - **Data minimization:** step field values are stored only where the
-  definition marks them `log: true`. Emails are stored only as a salted
-  hash. Codes and other secrets are never stored.
+  definition marks them `log: true`. Fields marked `sensitive`, such as the
+  email and the one-time code, are never stored in any form. Events record
+  field names, never values.
+- **The journey id is a credential** for unsigned journeys, so the dashboard
+  never shows it. Journeys are addressed there by a one-way `ref` (the first
+  16 hex characters of its SHA-256).
 
 ### 4.8 Honesty note for the demo page
 
@@ -273,11 +279,14 @@ shows an **intent completeness score** per journey and per agent.
 
 ### 5.3 Reconstructing the prompt
 
-The dashboard offers a **reconstructed prompt** per journey: a small Claude
-model turns the envelope plus logged step fields into one plausible user
-prompt, cached in D1 and clearly labelled as reconstructed. It is optional
-and needs an API key secret. With it off, the dashboard shows the structured
-fields only.
+The dashboard shows a **reconstructed prompt** per journey, built from the
+envelope plus logged step fields with a **fixed template**
+(`journey/src/engine/prompt.ts`). It is deterministic, free, can only restate
+what the agent declared, and is labelled as a reconstruction. It is stored
+with the journey and refreshed on every accepted step.
+
+An LLM-written version, more natural but needing an API key and costing a
+little per journey, is an open decision (section 11).
 
 ---
 
@@ -289,12 +298,19 @@ fields only.
 |---|---|
 | `GET /.well-known/agent-journeys` | Discovery: lists journey definitions with links |
 | `GET /journeys/{definition_id}` | The definition: steps, dependencies, field schemas, end states |
-| `GET /journeys/{definition_id}/arazzo.json` | Derived Arazzo workflow, with a derived OpenAPI document next to it |
+| `GET /.well-known/api-catalog` | RFC 9727 API catalog pointing at each journey's OpenAPI document |
+| `GET /journeys/{definition_id}/openapi.json` | Derived OpenAPI 3.1, one operation per step |
+| `GET /journeys/{definition_id}/arazzo.json` | Derived Arazzo 1.0.1 workflow over that OpenAPI document |
 | `POST /api/journey/start` | Intent handshake; returns `journey_id`, `next_steps`, `expires_at`, cancel link |
 | `POST /api/journey/{journey_id}/steps/{step}` | Perform a step with its fields |
 | `POST /api/journey/{journey_id}/cancel` | End the journey with a reason |
+| `POST /api/journey/{journey_id}/verification-code` | One-time code for a user-binding step; only once that step is next. Demo: returned in the response |
 | `GET /api/journey/{journey_id}` | Current state |
 | `GET /api/analytics/*` | Dashboard data (section 7) |
+
+Every response carries RFC 8288 `Link` headers to the discovery document and
+the API catalog. A signature that fails verification is refused with
+`401 identity-invalid`, never silently treated as unsigned.
 
 ### Cancel
 
@@ -322,12 +338,15 @@ Reason codes: `user-declined`, `constraint-unmet`, `price-too-high`,
 |---|---|---|
 | `201` | | Journey started |
 | `200` | | Step accepted or journey cancelled |
-| `401` | `identity-required` | Identity required and signature missing or invalid |
+| `401` | `identity-required` | Journey requires identity and the request is unsigned |
+| `401` | `identity-invalid` | A signature was sent but did not verify, or was replayed |
+| `403` | `user-binding-failed` | Wrong, expired or reused one-time code |
 | `403` | `wrong-agent` | Journey started by a different key |
 | `403` | `human-presence-required` | Step needs `human_present: true` |
 | `404` | `journey-unknown` | No such journey |
 | `409` | `step-out-of-order` | Required steps not done yet; names them |
 | `409` | `journey-closed` | Journey already ended |
+| `409` | `concurrent-update` | Another call changed the journey first; read and retry |
 | `410` | `journey-expired` | Journey passed its time-to-live |
 | `422` | `intent-missing` / `fields-missing` / `fields-invalid` | Names each offending field and its expected schema |
 
@@ -368,8 +387,8 @@ Measure or insights dashboards, so it ships with the module to customers.
 
 - Served by the journey Worker as static assets at `/dashboard/`, reading
   `/api/analytics/*`.
-- **Lab:** public, since the demo data contains no personal data and emails
-  are hashed. **Customer:** behind Cloudflare Access, as `insights` is today.
+- **Lab:** public, since no personal data is stored and journey ids are
+  never shown. **Customer:** behind Cloudflare Access, as `insights` is today.
 
 Views:
 
@@ -389,48 +408,59 @@ Charts follow the dataviz guidance already used for the lab's dashboards.
 
 ## 8. Data model (journey Worker's own D1)
 
+As built, from `journey/schema.sql`:
+
 ```sql
+-- One row per journey. Only fields a definition marks `log: true` are stored
+-- (step_data); fields marked `sensitive` (emails, codes) never are.
 CREATE TABLE IF NOT EXISTS journeys (
-  id                 TEXT PRIMARY KEY,      -- "jrn_" + 128 random bits, base32
-  definition_id      TEXT NOT NULL,
-  definition_version INTEGER NOT NULL,
-  status             TEXT NOT NULL,         -- active | achieved | not_achieved | cancelled | abandoned
-  end_reason         TEXT,
-  end_detail         TEXT,                  -- cancel detail, free text
-  alternative_chosen TEXT,
-  keyid              TEXT,                  -- null when unsigned under identity:optional
-  agent_name         TEXT,                  -- verified name
-  trust_tier         TEXT,
-  intent             TEXT NOT NULL,         -- envelope JSON
-  intent_kind        TEXT NOT NULL,         -- envelope.intent, for grouping
-  human_present      INTEGER NOT NULL,
-  completeness       REAL NOT NULL,         -- 0..1 share of optional envelope fields supplied
-  completed_steps    TEXT NOT NULL,         -- JSON array
-  step_data          TEXT NOT NULL,         -- JSON; only log:true fields
-  reconstructed_prompt TEXT,
-  traceparent        TEXT,
-  created_at         TEXT NOT NULL,
-  updated_at         TEXT NOT NULL,
-  expires_at         TEXT NOT NULL,
-  ended_at           TEXT
+  id                   TEXT PRIMARY KEY,      -- "jrn_" + 128 random bits, base32. A credential: never shown on the dashboard
+  ref                  TEXT NOT NULL UNIQUE,  -- public reference for the dashboard: sha-256(id), first 16 hex chars
+  definition_id        TEXT NOT NULL,
+  definition_version   INTEGER NOT NULL,
+  status               TEXT NOT NULL,         -- active | achieved | not_achieved | cancelled | abandoned
+  end_reason           TEXT,
+  end_detail           TEXT,
+  alternative_chosen   TEXT,
+  keyid                TEXT,                  -- binding key; null when started unsigned
+  agent_name           TEXT,                  -- verified agent name
+  trust_tier           TEXT,
+  intent               TEXT NOT NULL,         -- the intent envelope, JSON
+  intent_kind          TEXT NOT NULL,         -- envelope.intent, for grouping
+  human_present        INTEGER NOT NULL,
+  completeness         REAL NOT NULL,         -- 0..1 share of optional envelope fields supplied
+  completed_steps      TEXT NOT NULL,         -- JSON array
+  step_data            TEXT NOT NULL,         -- JSON: per step, log:true fields only
+  reconstructed_prompt TEXT,                  -- template reconstruction, refreshed on every accepted step
+  transport            TEXT NOT NULL,         -- http | mcp
+  traceparent          TEXT,                  -- W3C Trace Context, if the agent sent one
+  revision             INTEGER NOT NULL,      -- optimistic concurrency
+  created_at           TEXT NOT NULL,
+  updated_at           TEXT NOT NULL,
+  expires_at           TEXT NOT NULL,         -- idle timeout; lazily turned into "abandoned"
+  ended_at             TEXT
 );
 
+CREATE INDEX IF NOT EXISTS journeys_created ON journeys (created_at DESC);
+CREATE INDEX IF NOT EXISTS journeys_def_status ON journeys (definition_id, status);
+
+-- One row per call attempt, accepted or rejected. Field NAMES only, never values.
 CREATE TABLE IF NOT EXISTS journey_events (
-  id          INTEGER PRIMARY KEY AUTOINCREMENT,
-  journey_id  TEXT,                         -- null for a refused start
-  ts          TEXT NOT NULL,
-  step        TEXT NOT NULL,                -- "start", a step name, or "cancel"
-  outcome     TEXT NOT NULL,                -- accepted | rejected
-  reason      TEXT,
-  status      INTEGER NOT NULL,
-  details     TEXT,                         -- JSON: field names, never values
-  keyid       TEXT,
-  transport   TEXT NOT NULL                 -- http | mcp
+  id             INTEGER PRIMARY KEY AUTOINCREMENT,
+  journey_id     TEXT,                        -- null for a refused start
+  definition_id  TEXT,
+  ts             TEXT NOT NULL,
+  step           TEXT NOT NULL,               -- "start", a step name, "cancel", or "verification-code"
+  outcome        TEXT NOT NULL,               -- accepted | rejected
+  reason         TEXT,                        -- rejection reason code
+  status         INTEGER NOT NULL,            -- HTTP status returned
+  details        TEXT,                        -- JSON: offending field names, missing steps
+  keyid          TEXT,
+  transport      TEXT NOT NULL
 );
 
 CREATE INDEX IF NOT EXISTS journey_events_journey ON journey_events (journey_id, ts);
-CREATE INDEX IF NOT EXISTS journeys_created ON journeys (created_at DESC);
-CREATE INDEX IF NOT EXISTS journeys_status ON journeys (definition_id, status);
+CREATE INDEX IF NOT EXISTS journey_events_def ON journey_events (definition_id, ts);
 ```
 
 ---
@@ -482,6 +512,9 @@ Eight phases. Phases 1 to 5 deliver the working prototype with dashboard.
 Phase 6 proves it with a real agent. Phases 7 and 8 lead to the customer
 module.
 
+Phases 1 to 5 are **done** (2026-09-29); see section 13 for verification
+results and deviations.
+
 ### Phase 1: Engine and definition format
 
 **Goal:** a pure, tested state machine driven by a JSON definition.
@@ -491,7 +524,7 @@ module.
 | 1.1 Types for definitions, envelope v1, state, results | `journey/src/engine/types.ts` | Typecheck passes |
 | 1.2 JSON Schema subset validator | `journey/src/engine/validate.ts` | Returns `{field, problem, expected}` items, never throws |
 | 1.3 Definition loader and linter: unknown `requires`, cycles, no terminal step, `end_if` on unknown fields | `journey/src/engine/definitions.ts`, `journey/definitions/lead-qualification.json` | A broken definition fails at load with a clear message |
-| 1.4 `start()`, `advance()`, `cancel()`: dependencies, validation, `end_if`, terminal steps, idempotency, expiry, key binding, completeness score | `journey/src/engine/engine.ts` | Every reason code in section 6 reachable |
+| 1.4 `start()`, `prepareStep()` + `applyStep()`, `cancel()`: dependencies, validation, `end_if`, terminal steps, idempotency, expiry, key binding, completeness score | `journey/src/engine/engine.ts` | Every reason code in section 6 reachable |
 | 1.5 Unit tests for every reason code and every end status | `journey/test/*.test.ts`, root `package.json` script `test:journey` | Green |
 
 ### Phase 2: Worker scaffold and persistence
@@ -500,9 +533,9 @@ module.
 
 | Task | Files | Done when |
 |---|---|---|
-| 2.1 Worker scaffold, D1 `eleviq-lab-journeys`, own `NONCES` KV, shared `DELEGATION_CODES` binding, npm scripts `dev:journey` and `deploy:journey` | `journey/wrangler.toml`, `journey/src/index.ts`, `package.json` | `wrangler dev` serves `GET /` |
+| 2.1 Worker scaffold, D1 `eleviq-lab-journeys`, own `NONCES` and `DELEGATION_CODES` KV, npm scripts `dev:journey` and `deploy:journey` | `journey/wrangler.toml`, `journey/src/index.ts`, `package.json` | `wrangler dev` serves `GET /` |
 | 2.2 Schema from section 8 | `journey/schema.sql` | Applied locally |
-| 2.3 Store with optimistic `updated_at` check and lazy expiry | `journey/src/store.ts` | Two concurrent step calls cannot both win |
+| 2.3 Store with an optimistic `revision` check and lazy expiry | `journey/src/store.ts` | Two concurrent step calls cannot both win |
 | 2.4 Sinks: D1 and webhook, from config, via `ctx.waitUntil` | `journey/src/sinks.ts`, `journey/src/config.ts` | A failing webhook never fails a response |
 | 2.5 Adapters: identity wrapping `checkIdentity()`, user binding wrapping `checkDelegation()` | `journey/src/adapters/*.ts` | The engine never imports gateway code directly |
 
@@ -512,7 +545,7 @@ module.
 
 | Task | Done when |
 |---|---|
-| 3.1 Discovery, definition, start, step, cancel and status routes with problem+json refusals | Every row of the status table reproducible with curl |
+| 3.1 Discovery, API catalog, definition, start, step, cancel, verification-code and status routes with problem+json refusals | Every row of the status table reproducible with curl |
 | 3.2 Arazzo and OpenAPI documents derived from the definition | Arazzo document passes a validator, for example Spectral's Arazzo ruleset |
 | 3.3 Second trusted demo key `demo-agent-b` in the gateway directory and key scripts | Wrong-agent scenario returns `403 wrong-agent`; Demo 1 unaffected |
 | 3.4 Reference client `docs/reference/journey-run.mjs`, signed, runs the full journey | Green against local Worker |
@@ -540,7 +573,7 @@ The expired scenario uses a short-TTL variant of the demo definition.
 | 5.1 Analytics API: funnel, drop-off, intent distributions, competitive view, agents, journey list and detail | Capped rows, no raw emails |
 | 5.2 Dashboard static assets served by the journey Worker | All views of section 7 render with seeded data |
 | 5.3 Seed script generating varied realistic journeys, for development only | Dashboard meaningful before real traffic |
-| 5.4 Optional reconstructed prompt with a small Claude model, cached, behind a config flag and secret | Off by default; labelled as reconstructed |
+| 5.4 Reconstructed prompt. Built as a fixed template; an LLM version is still open | Labelled as reconstructed |
 
 ### Phase 6: Deploy and real-agent test
 
@@ -604,7 +637,7 @@ MCP clients do not send Web Bot Auth signatures, so MCP journeys run under
 | Identity mandatory? | No. Per definition: `required` or `optional`. Dashboard separates verified from unverified. |
 | Where the demo sits | Dedicated demo and dedicated Worker, to keep it separate for the carve-out. |
 | Second trusted demo key | Yes. |
-| Store step field values | Only fields marked `log: true`; emails hashed; secrets never. |
+| Store step field values | Only fields marked `log: true`; `sensitive` fields such as emails and codes never. |
 | Journey id format | `jrn_` plus 128 random bits, base32. |
 | Protocol name | Keep "Agent Journey Protocol" as an ElevIQ profile; align with Arazzo, AP2, A2A, MCP and Trace Context. |
 | MCP implementation | `createMcpHandler`, stateless. Revisit for OAuth. |
@@ -612,8 +645,8 @@ MCP clients do not send Web Bot Auth signatures, so MCP journeys run under
 | Cancel call | Yes, with reason codes. |
 | Constraints versus decision criteria | Separate structured fields. |
 
-Open, to confirm when phase 5 starts: whether the reconstructed-prompt
-feature should be built for the lab, since it needs an API key and costs a
+Still open: whether to add an **LLM-written** reconstructed prompt on top
+of the template version that was built. It needs an API key and costs a
 little per journey.
 
 ---
