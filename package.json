@@ -11,7 +11,10 @@
     "dev:site": "npm run build && npx --yes http-server docs -p 8000 -c-1 --silent",
     "keys": "node scripts/gen-keys.mjs",
     "charge-keys": "node scripts/gen-charge-keys.mjs",
-    "typecheck": "tsc -p gateway/tsconfig.json"
+    "dev:journey": "wrangler dev --config journey/wrangler.toml --port 8788",
+    "deploy:journey": "npm run test:journey && wrangler deploy --config journey/wrangler.toml",
+    "test:journey": "node --test 'journey/test/**/*.test.ts'",
+    "typecheck": "tsc -p gateway/tsconfig.json && tsc -p journey/tsconfig.json"
   },
   "dependencies": {
     "fast-xml-parser": "^5.11.1",

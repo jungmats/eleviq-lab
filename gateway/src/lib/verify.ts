@@ -37,7 +37,8 @@ export type Verdict =
       keyid?: string;
     };
 
-export async function checkIdentity(request: Request, env: Env): Promise<Verdict> {
+/** Only needs the nonce store, so other Workers (journey/) can reuse it. */
+export async function checkIdentity(request: Request, env: Pick<Env, "NONCES">): Promise<Verdict> {
   const hasSig = request.headers.get("Signature");
   const hasInput = request.headers.get("Signature-Input");
   if (!hasSig || !hasInput) {

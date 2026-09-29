@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="journey-gateway" content="https://eleviq-lab-journey.gateway-worker.workers.dev">
+  <title>Journey — ElevIQ Lab</title>
+  <link rel="icon" href="../assets/eleviq_icon.png">
+  <link rel="stylesheet" href="../styles.css">
+  <link rel="stylesheet" href="../lab.css">
+</head>
+<body>
+
+  <header>
+    <a href="https://eleviq.solutions"><img src="../assets/eleviq_logo_v1.6.png" alt="ElevIQ Logo"></a>
+    <p class="brand-line">ElevIQ Lab</p>
+    <p><b>Journey — what did the agent come to do?</b></p>
+    <p class="lab-crumbs"><a href="../">Lab home</a> &nbsp;·&nbsp; Journey</p>
+  </header>
+
+  <div class="container wide">
+    <main>
+
+      <section class="section step">
+        <h2><span class="step-n">1</span> The problem</h2>
+        <p>An agent arrives, makes a few requests, and leaves. The site sees isolated calls.
+          It does not know what the agent was trying to do for its user, how far it got,
+          or why it stopped.</p>
+        <p>This demo makes the customer journey an explicit entity. The agent declares its
+          intent up front and gets a <b>journey id</b>. Each step is accepted only after
+          the steps it depends on, and only with the information that step asks for.
+          Every attempt is logged against the journey, so journeys read as a funnel.</p>
+        <p class="unlisted-note">The protocol here is an ElevIQ lab convention, not a
+          ratified standard. It builds on existing ones where they fit; see section 3.</p>
+      </section>
+
+      <section class="section step">
+        <h2><span class="step-n">2</span> The demo</h2>
+
+        <div class="agent-callout">
+          You are the agent. The journey: qualify for an agent-readiness engagement with
+          ElevIQ, verify who you act for, then book a call. Pick how the agent behaves.
+        </div>
+
+        <div class="console">
+          <div class="console-controls">
+            <div class="control-row">
+              <span class="label">How does the agent behave?</span>
+              <div class="scenario" id="scenario">
+                <label><input type="radio" name="scenario" value="happy" checked>
+                  <span><span class="s-name">Does everything right</span><br>
+                  <span class="s-desc">Declares intent, follows every step in order, verifies the user, books a call.</span></span></label>
+                <label><input type="radio" name="scenario" value="skip">
+                  <span><span class="s-name">Skips a step</span><br>
+                  <span class="s-desc">Jumps from discovery straight to verification.</span></span></label>
+                <label><input type="radio" name="scenario" value="missing">
+                  <span><span class="s-name">Sends too little, then corrects</span><br>
+                  <span class="s-desc">Qualifies with one field, reads the refusal, sends the rest.</span></span></label>
+                <label><input type="radio" name="scenario" value="below-budget">
+                  <span><span class="s-name">Budget too small</span><br>
+                  <span class="s-desc">A business rule ends the journey as not achieved.</span></span></label>
+                <label><input type="radio" name="scenario" value="cancel">
+                  <span><span class="s-name">Cancels with a reason</span><br>
+                  <span class="s-desc">The user found an alternative; the agent says so.</span></span></label>
+                <label><input type="radio" name="scenario" value="wrong-agent">
+                  <span><span class="s-name">Another agent tries to continue</span><br>
+                  <span class="s-desc">A second, equally trusted agent calls a journey it did not start.</span></span></label>
+                <label><input type="radio" name="scenario" value="expired">
+                  <span><span class="s-name">Goes idle</span><br>
+                  <span class="s-desc">A short-lived demo journey, idle for 6 seconds, is abandoned.</span></span></label>
+                <label><input type="radio" name="scenario" value="unsigned">
+                  <span><span class="s-name">Doesn't sign its requests</span><br>
+                  <span class="s-desc">Most agents today. Accepted, but marked unverified and bound only by the journey id.</span></span></label>
+              </div>
+            </div>
+            <button class="send-btn" id="run">Run the journey →</button>
+          </div>
+
+          <div class="journey-progress">
+            <p class="pane-title">Journey</p>
+            <ol class="step-chips" id="chips"></ol>
+          </div>
+
+          <div class="exchange">
+            <div class="req">
+              <p class="pane-title">Calls, in order <span class="hint-inline">(select one to inspect it)</span></p>
+              <ol class="call-list" id="calls"><li class="empty">Press “Run the journey”.</li></ol>
+            </div>
+            <div class="res">
+              <p class="pane-title">Outcome</p>
+              <div class="verdict" id="verdict">
+                <div class="status">— Not started</div>
+                <p class="reason">No journey yet.</p>
+                <dl class="facts" id="facts" hidden></dl>
+              </div>
+            </div>
+          </div>
+
+          <div class="response-body">
+            <p class="pane-title" id="body-title">Selected call</p>
+            <pre class="wire" id="call-body">—</pre>
+          </div>
+        </div>
+
+        <p class="hint">Every call is logged against its journey. See them all on the
+          <a id="dashboard-link" href="https://eleviq-lab-journey.gateway-worker.workers.dev/dashboard/">journey dashboard</a>:
+          funnel, where journeys stop, what agents declared, and a reconstructed prompt per journey.</p>
+      </section>
+
+      <section class="section step">
+        <h2><span class="step-n">3</span> How it works</h2>
+
+        <h3>The intent handshake</h3>
+        <p>A journey starts with an intent declaration. Three fields are required: the kind
+          of intent, the goal, and whether a human is present. The rest is optional, and
+          the dashboard scores how complete each declaration is. Together the fields aim to
+          reconstruct what the user actually asked for.</p>
+        <pre class="wire">{
+  "intent": "qualify",
+  "goal": "Find a consultant to make our B2B shop usable by AI shopping agents",
+  "human_present": true,
+  "request_summary": "find someone in Switzerland who can make our shop work with ChatGPT agents",
+  "principal": { "type": "business", "role": "head of e-commerce", "organization_size": "50-249", "region": "CH" },
+  "journey_stage": "shortlisting",
+  "constraints": [ { "field": "price", "op": "lte", "value": 5000, "unit": "EUR" } ],
+  "decision_criteria": [ { "criterion": "price", "direction": "minimize" }, { "criterion": "local presence" } ],
+  "alternatives_considered": ["competitor-a.example"],
+  "authority": { "can_commit": false },
+  "discovery_source": "web-search"
+}</pre>
+        <p><b>Constraints</b> are hard filters: an option that breaks one is out.
+          <b>Decision criteria</b> are soft and ranked: they pick between options that pass.
+          Keeping them apart tells the site whether its offer never qualified, or qualified
+          and lost.</p>
+
+        <h3>Refused calls versus ended journeys</h3>
+        <table class="stat-table">
+          <thead><tr><th>What happened</th><th>Journey</th></tr></thead>
+          <tbody>
+            <tr><td>Wrong order, missing or invalid fields, wrong agent</td><td>Unchanged. The refusal names the next steps and the missing fields; the agent corrects and retries.</td></tr>
+            <tr><td>Final step reached</td><td>Achieved</td></tr>
+            <tr><td>A business rule matched, e.g. budget below minimum</td><td>Not achieved, with a reason</td></tr>
+            <tr><td>The agent cancelled</td><td>Cancelled, with a reason and optionally the alternative chosen</td></tr>
+            <tr><td>Idle past its timeout</td><td>Abandoned</td></tr>
+          </tbody>
+        </table>
+
+        <h3>Identity and the journey id</h3>
+        <p>A journey started with a Web Bot Auth signature (see
+          <a href="../identity/">Identify</a>) is bound to that key: every later call must be
+          signed with it. Most agents don't sign yet, so this journey also accepts unsigned
+          agents. Their journeys are bound only by the journey id and show as unverified on
+          the dashboard. The verification step reuses the one-time code from
+          <a href="../delegate/">Delegate</a>, scoped to the journey.</p>
+
+        <h3>Standards it builds on</h3>
+        <ul>
+          <li><b>Arazzo</b> (OpenAPI Initiative): each journey is also published as an Arazzo
+            workflow, generated from the same definition the server enforces.</li>
+          <li><b>RFC 9727 API catalog</b> and <b>Link headers</b> point agents and tools at
+            the descriptions.</li>
+          <li><b>AP2</b>'s "human present" vocabulary, and <b>A2A</b>'s task states in every
+            response.</li>
+          <li><b>RFC 9457</b> problem details for every refusal.</li>
+        </ul>
+
+        <p class="unlisted-note">What this does not do: the intent declaration is a
+          self-report. Nothing stops an agent from inventing a goal. What the protocol adds
+          is structure, accountability when the agent is signed, and a funnel the site can
+          actually read.</p>
+      </section>
+
+      <section class="section step">
+        <h2><span class="step-n">4</span> Try it from your own tools</h2>
+
+        <h3>A — Discover</h3>
+        <pre class="wire" id="curl-discover">curl -s https://eleviq-lab-journey.gateway-worker.workers.dev/.well-known/agent-journeys</pre>
+        <p>Lists each journey with its definition, OpenAPI and Arazzo documents, and an
+          example start body.</p>
+
+        <h3>B — Start a journey and follow it</h3>
+        <pre class="wire" id="curl-start">curl -s -X POST https://eleviq-lab-journey.gateway-worker.workers.dev/api/journey/start \
+  -H 'content-type: application/json' \
+  -d '{"definition":"lead-qualification","intent":{"intent":"qualify","goal":"Find an agent-readiness consultant","human_present":true}}'</pre>
+        <p>The response carries the journey id and each next step's link and fields. Call
+          a step before its time, or with a field missing, to see the refusal.</p>
+
+        <h3>C — Run every scenario, signed</h3>
+        <pre class="wire">mkdir aj && cd aj
+npm init -y && npm install web-bot-auth
+curl -O https://lab.eleviq.solutions/reference/journey-run.mjs
+curl -O https://lab.eleviq.solutions/reference/demo-agent.jwk.json
+curl -O https://lab.eleviq.solutions/reference/demo-agent-b.jwk.json
+node journey-run.mjs --base https://eleviq-lab-journey.gateway-worker.workers.dev --scenario all</pre>
+
+        <h3>D — Try it with a real agent</h3>
+        <pre class="wire">Find out whether ElevIQ could help my company become agent-ready. Start at
+https://eleviq-lab-journey.gateway-worker.workers.dev/.well-known/agent-journeys
+and follow the journey it describes. We are a B2B shop, budget around 5000 EUR,
+deadline end of November. Use my email for verification.</pre>
+      </section>
+
+    </main>
+  </div>
+
+  <footer>
+    &copy; 2025–2026 ElevIQ. &nbsp;·&nbsp; <a href="https://eleviq.solutions">eleviq.solutions</a>
+    &nbsp;·&nbsp; <a href="../">ElevIQ Lab</a>
+  </footer>
+
+  <script type="module" src="../assets/journey.js"></script>
+</body>
+</html>

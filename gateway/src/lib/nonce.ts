@@ -17,7 +17,7 @@ import type { Env } from "./env";
  * signature's own `expires` — no point remembering it any longer than that,
  * since it would fail the expiry check anyway.
  */
-export async function claimNonce(env: Env, nonce: string, ttlSeconds: number): Promise<boolean> {
+export async function claimNonce(env: Pick<Env, "NONCES">, nonce: string, ttlSeconds: number): Promise<boolean> {
   const existing = await env.NONCES.get(nonce);
   if (existing) return false;
 

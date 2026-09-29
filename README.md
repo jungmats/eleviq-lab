@@ -34,8 +34,9 @@ cross-origin. Nothing is simulated — real Ed25519 signing and verification.
 | 4 · Charge | HTTP 402 · Pay Per Crawl · x402 | planned |
 | **5 · Measure** | attribution dashboards | ✅ built — `/measure/` (Demo 1's log) + `insights.eleviq.solutions` (site traffic, behind Cloudflare Access) |
 | 6 · Sustain | post-ad monetization — scope tbd, likely several demos | planned |
+| **Journey** | Agent Journey Protocol: intent handshake, enforced step order, journey funnel dashboard | 🛠 built locally, not deployed — `/journey/`, own Worker in `journey/` |
 
-See [`PLAN.md`](PLAN.md).
+See [`PLAN.md`](PLAN.md), and [`AGENT-JOURNEY-PROTOCOL.md`](AGENT-JOURNEY-PROTOCOL.md) for the Journey demo.
 
 ## Gateway endpoints
 
@@ -77,10 +78,16 @@ npx wrangler d1 execute eleviq-lab-log --config gateway/wrangler.toml --local --
 npm run build          # bundles web-bot-auth for the browser, copies demo keys into docs/reference/
 npm run dev:gateway    # gateway Worker at http://localhost:8787
 npm run dev:site       # static site at http://localhost:8000 (console auto-targets :8787 on localhost)
+
+# Journey demo (own Worker, see journey/README.md)
+npx wrangler d1 execute eleviq-lab-journeys --config journey/wrangler.toml --local --file=journey/schema.sql  # once
+npm run dev:journey    # journey Worker at http://localhost:8788, dashboard at /dashboard/
+npm run test:journey   # engine unit tests
+node scripts/seed-journeys.ts   # optional: 180 varied journeys into the LOCAL database
 ```
 
 - `npm run keys` regenerates the demo keypairs in `gateway/keys/`.
-- `npm run typecheck` runs `tsc` over the gateway.
+- `npm run typecheck` runs `tsc` over the gateway and the journey Worker.
 - After `npm run build`, **commit** `docs/assets/agent-sign.js` and
   `docs/reference/*.jwk.json` — GitHub Pages serves committed files directly.
 

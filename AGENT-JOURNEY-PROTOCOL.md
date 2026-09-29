@@ -1,9 +1,10 @@
 # Agent Journey Protocol: concept, design and implementation plan
 
-**Status (2026-09-29): proposal, revision 2, nothing built yet.**
+**Status (2026-09-29): phases 1–5 built and verified locally, not deployed.**
 First target: a dedicated demo in ElevIQ Lab (`/journey/`), served by its
 own Worker, with its own analytics dashboard. Second target: the same code
 carved out as a module ElevIQ deploys and customizes for customers.
+Build notes, deviations from this plan, and deploy steps: section 13.
 
 "Agent Journey Protocol" is a working name for an ElevIQ profile that
 composes existing standards (section 3). It is not a ratified standard, and
@@ -625,3 +626,68 @@ little per journey.
   Token draft.
 - A visual definition editor.
 - OAuth-based user binding.
+
+---
+
+## 13. Build status (2026-09-29)
+
+Phases 1 to 5 are built and verified against `wrangler dev`. Nothing is
+deployed. Code lives in `journey/` (Worker, engine, definitions, dashboard),
+`docs/journey/` and `docs/assets/journey.js` (demo page),
+`docs/reference/journey-run.mjs` (reference client) and
+`scripts/seed-journeys.ts` (local seed data).
+
+**Verified:**
+
+| Check | Result |
+|---|---|
+| Engine unit tests (`npm run test:journey`) | 24 pass |
+| Typecheck, gateway and journey | clean |
+| Reference client, all 8 scenarios, local Worker | 8/8 behave as designed |
+| Edge cases: wrong or reused code, code for another email, tampered and replayed signatures, malformed input, discovery documents, no journey ids in analytics | 22/22 |
+| Arazzo and OpenAPI documents, Spectral `arazzo` and `oas` rulesets | 0 errors, 0 warnings |
+| Demo page, all 8 scenarios, headless Chromium | all correct, no console errors, no overflow at 390px |
+| Dashboard, light and dark and 390px, with 180 seeded journeys | renders, no console errors, no overflow |
+| Outcome palette, dataviz validator | passes light and dark; light-mode contrast warning covered by the chart's table view |
+
+**Deviations from the plan:**
+
+- **Verification codes are issued by the journey Worker itself**
+  (`POST /api/journey/{id}/verification-code`), reusing the Delegate demo's
+  code module with the Worker's own KV, instead of sharing the gateway's KV.
+  Codes are scoped to one journey. Keeps the module self-contained.
+- **The gateway's `access_log` is not extended** with journey columns: with a
+  dedicated Worker, journey events live in the journey database.
+- **The reconstructed prompt is template-based**, not LLM-written. It is
+  deterministic, free, and can only restate what the agent declared. The
+  LLM version remains the open decision in section 11.
+- **Added:** `revision` for optimistic concurrency, a one-way `ref` so the
+  dashboard never exposes journey ids (they are credentials for unsigned
+  journeys), an RFC 9727 `/.well-known/api-catalog`, Link headers on every
+  response, and a signature that fails verification is refused rather than
+  treated as unsigned.
+- **The example journey uses `identity: optional`**, the realistic default.
+  `required` is implemented and unit-tested.
+- **Small gateway changes:** `checkIdentity()`, `claimNonce()` and the
+  delegation functions now accept any environment with the storage they
+  use; a second trusted demo key `demo-agent-b` is in the directory.
+
+**Before the first deploy (phase 6):**
+
+1. Create the resources and paste their ids into `journey/wrangler.toml`,
+   which holds placeholders:
+   ```bash
+   npx wrangler d1 create eleviq-lab-journeys
+   npx wrangler kv namespace create JOURNEY_NONCES
+   npx wrangler kv namespace create JOURNEY_CODES
+   npx wrangler d1 execute eleviq-lab-journeys --config journey/wrangler.toml --remote --file=journey/schema.sql
+   ```
+2. `npm run deploy:gateway` so the gateway's directory publishes `demo-agent-b`.
+3. `npm run deploy:journey`. The page and landing card assume the URL
+   `eleviq-lab-journey.gateway-worker.workers.dev`; adjust `docs/journey/index.html`
+   and `docs/index.html` if wrangler reports another.
+4. `npm run build`, then commit and push `docs/` so Pages serves the page,
+   the new key and the reference client. The landing card says "Live", so
+   push only after step 3.
+5. Run `node docs/reference/journey-run.mjs --base <worker URL> --scenario all`
+   against production, then the real-agent test.

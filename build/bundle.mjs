@@ -43,7 +43,7 @@ console.log("bundled  docs/assets/charge-sign.js");
 
 await mkdir(join(ROOT, "docs/reference"), { recursive: true });
 
-const PUBLISHED_KEYS = ["demo-agent", "untrusted-agent"];
+const PUBLISHED_KEYS = ["demo-agent", "demo-agent-b", "untrusted-agent"];
 for (const name of PUBLISHED_KEYS) {
   await cp(join(ROOT, `gateway/keys/${name}.jwk.json`), join(ROOT, `docs/reference/${name}.jwk.json`));
 }

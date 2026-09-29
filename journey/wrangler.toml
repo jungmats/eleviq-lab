@@ -1,0 +1,49 @@
+# ElevIQ Lab — Agent Journey Worker (Cloudflare).
+#
+#   npm run dev:journey      local: http://localhost:8788
+#   npm run deploy:journey   -> https://eleviq-lab-journey.<subdomain>.workers.dev
+#
+# Deliberately its own Worker, database and KV — not routes on gateway/ — so
+# it can be carved out as the customer module unchanged. It reuses the
+# gateway's identity and one-time-code code (not its storage) through
+# src/adapters/. See AGENT-JOURNEY-PROTOCOL.md.
+
+name = "eleviq-lab-journey"
+main = "src/index.ts"
+compatibility_date = "2026-09-01"
+compatibility_flags = ["nodejs_compat"]
+workers_dev = true
+
+[observability]
+enabled = true
+
+# The analytics dashboard, served at /dashboard/. Any path that isn't a file
+# here falls through to the Worker.
+[assets]
+directory = "./public"
+
+# Journeys + journey_events. schema.sql defines them; run once per environment:
+#   npx wrangler d1 execute eleviq-lab-journeys --config journey/wrangler.toml --local  --file=journey/schema.sql
+#   npx wrangler d1 execute eleviq-lab-journeys --config journey/wrangler.toml --remote --file=journey/schema.sql
+# BEFORE THE FIRST DEPLOY: create it and paste the real id below:
+#   npx wrangler d1 create eleviq-lab-journeys
+[[d1_databases]]
+binding = "DB"
+database_name = "eleviq-lab-journeys"
+database_id = "00000000-0000-0000-0000-000000000000"
+
+# Web Bot Auth nonce replay protection (same role as the gateway's NONCES).
+# BEFORE THE FIRST DEPLOY: npx wrangler kv namespace create JOURNEY_NONCES
+[[kv_namespaces]]
+binding = "NONCES"
+id = "00000000000000000000000000000000"
+
+# One-time codes for the user-binding step. Binding name matches what
+# gateway/src/lib/delegation.ts expects; the namespace is this Worker's own.
+# BEFORE THE FIRST DEPLOY: npx wrangler kv namespace create JOURNEY_CODES
+[[kv_namespaces]]
+binding = "DELEGATION_CODES"
+id = "11111111111111111111111111111111"
+
+# Optional secret for the webhook sink (src/config.ts), not set here:
+#   npx wrangler secret put JOURNEY_WEBHOOK_SECRET --config journey/wrangler.toml

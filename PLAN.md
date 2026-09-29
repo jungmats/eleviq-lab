@@ -1,3 +1,10 @@
+# ElevIQ Lab — Journey (Agent Journey Protocol)
+
+**Status (2026-09-29): phases 1–5 built and verified locally, not deployed.**
+Own Worker in `journey/`, demo at `/journey/`, dashboard at the Worker's
+`/dashboard/`. Design, plan, verification results and deploy steps live in
+`AGENT-JOURNEY-PROTOCOL.md` (section 13), not here.
+
 # ElevIQ Lab — Demo 4 (Charge)
 
 **Status (2026-09-15): deployed and live at `https://lab.eleviq.solutions/charge/`.**

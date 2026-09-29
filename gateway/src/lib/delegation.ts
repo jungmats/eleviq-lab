@@ -27,7 +27,7 @@ function kvKey(actingFor: string, code: string): string {
 }
 
 /** Generates and stores a fresh code for this email. Returns the code. */
-export async function requestCode(env: Env, actingFor: string): Promise<string> {
+export async function requestCode(env: Pick<Env, "DELEGATION_CODES">, actingFor: string): Promise<string> {
   const code = generateCode();
   await env.DELEGATION_CODES.put(kvKey(actingFor, code), "pending", { expirationTtl: CODE_TTL_SECONDS });
   return code;
@@ -46,7 +46,7 @@ export type DelegationOutcome =
  * since those mean different things to whoever's reading the response.
  */
 export async function checkDelegation(
-  env: Env,
+  env: Pick<Env, "DELEGATION_CODES">,
   actingFor: string | null,
   code: string | null,
 ): Promise<DelegationOutcome> {

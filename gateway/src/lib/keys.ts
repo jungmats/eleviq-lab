@@ -1,7 +1,10 @@
 /**
  * The lab's key registry.
  *
- * Trust here has ONE entry: "ElevIQ Lab demo agent" — a single throwaway
+ * Trust here has TWO entries: "ElevIQ Lab demo agent" (used by every demo)
+ * and "ElevIQ Lab demo agent B" (only so the Journey demo can show a second,
+ * equally trusted agent being refused on another agent's journey). Before
+ * that, the one entry was "ElevIQ Lab demo agent" — a single throwaway
  * keypair (see keys/demo-agent.jwk.json + scripts/gen-keys.mjs). A signature
  * from it proves possession of that one key, nothing more. It is NOT labelled
  * as OpenAI, Anthropic or anyone else — the demo used to do that, which
@@ -28,6 +31,7 @@ import { verifierFromJWK } from "web-bot-auth/crypto";
 import type { WebBotVerifier } from "web-bot-auth";
 
 import demoAgent from "../../keys/demo-agent.jwk.json";
+import demoAgentB from "../../keys/demo-agent-b.jwk.json";
 
 export interface AgentMeta {
   /** what the agent calls itself (its User-Agent product token) */
@@ -44,6 +48,8 @@ const asJwk = (x: unknown) => x as Jwk;
 
 const REGISTRY: Array<{ jwk: Jwk; meta: AgentMeta }> = [
   { jwk: asJwk(demoAgent), meta: { name: "ElevIQ Lab demo agent", operator: "ElevIQ", domain: "eleviq.solutions" } },
+  // A second trusted agent, used by the Journey demo's "wrong agent" scenario.
+  { jwk: asJwk(demoAgentB), meta: { name: "ElevIQ Lab demo agent B", operator: "ElevIQ", domain: "eleviq.solutions" } },
 ];
 
 /** Strip the private component — what goes in the public directory. */

@@ -22,6 +22,9 @@ const KEYS_DIR = join(ROOT, "gateway/keys");
 const KEYS = {
   "demo-agent": "eleviq-lab-demo-agent",
   "untrusted-agent": "eleviq-lab-untrusted-agent",
+  // Second TRUSTED key: lets the Journey demo show a journey refusing calls
+  // signed by a different (but equally trusted) agent than the one that started it.
+  "demo-agent-b": "eleviq-lab-demo-agent-b",
 };
 
 function makeKey(kid) {

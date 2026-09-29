@@ -8,6 +8,9 @@ node_modules/
 # local preview screenshots (not part of the site)
 .preview/
 
+# journey/ test output (generated Arazzo/OpenAPI, for external linting)
+journey/.out/
+
 # OS / editor cruft
 .DS_Store
 *.log

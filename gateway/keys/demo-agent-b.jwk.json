@@ -1,0 +1,8 @@
+{
+  "kty": "OKP",
+  "crv": "Ed25519",
+  "alg": "EdDSA",
+  "kid": "eleviq-lab-demo-agent-b",
+  "x": "EyqIfa5B3ljcMQfXnACOQGrvkl_Vo8ODy5gMV1-a8-M",
+  "d": "wJGLUWroOtY6sK0p-Gcz4gETHCdsloLTxHOvd866sqs"
+}
