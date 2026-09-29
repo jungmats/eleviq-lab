@@ -9,6 +9,7 @@
   <link rel="icon" href="../assets/eleviq_icon.png">
   <link rel="stylesheet" href="../styles.css">
   <link rel="stylesheet" href="../lab.css">
+  <link rel="describedby" type="text/plain" href="/llms.txt" title="Instructions for AI assistants">
 </head>
 <body>
 
@@ -112,10 +113,17 @@
         <h2><span class="step-n">3</span> How it works</h2>
 
         <h3>The intent handshake</h3>
-        <p>A journey starts with an intent declaration. Three fields are required: the kind
-          of intent, the goal, and whether a human is present. The rest is optional, and
-          the dashboard scores how complete each declaration is. Together the fields aim to
-          reconstruct what the user actually asked for.</p>
+        <p>A journey starts with an intent declaration, and the agent is expected to
+          provide it. Without one, the journey does not start: the server refuses and lists
+          the fields it needs. Three fields are required: the kind of intent, the goal, and
+          whether a human is present. The rest is optional, and the dashboard scores how
+          complete each declaration is. Together the fields aim to reconstruct what the user
+          actually asked for.</p>
+        <p>The same rule applies at every step. Each step asks for specific information,
+          such as the budget and deadline when qualifying. Until the agent provides it,
+          the step is refused with the missing fields listed, and the journey cannot move
+          on. Nothing is lost: the agent can send the step again with the missing
+          information.</p>
         <pre class="wire">{
   "intent": "qualify",
   "goal": "Find a consultant to make our B2B shop usable by AI shopping agents",
@@ -135,7 +143,7 @@
           and lost.</p>
 
         <h3>Refused calls versus ended journeys</h3>
-        <table class="stat-table">
+        <table class="info-table">
           <thead><tr><th>What happened</th><th>Journey</th></tr></thead>
           <tbody>
             <tr><td>Wrong order, missing or invalid fields, wrong agent</td><td>Unchanged. The refusal names the next steps and the missing fields; the agent corrects and retries.</td></tr>
@@ -194,11 +202,17 @@ curl -O https://lab.eleviq.solutions/reference/demo-agent.jwk.json
 curl -O https://lab.eleviq.solutions/reference/demo-agent-b.jwk.json
 node journey-run.mjs --base https://eleviq-lab-journey.gateway-worker.workers.dev --scenario all</pre>
 
-        <h3>D — Try it with a real agent</h3>
+        <h3>D — Try it with an AI assistant</h3>
+        <p>Ask an AI assistant such as ChatGPT or Claude to do it for you. Copy this
+          prompt:</p>
         <pre class="wire">Find out whether ElevIQ could help my company become agent-ready. Start at
-https://eleviq-lab-journey.gateway-worker.workers.dev/.well-known/agent-journeys
-and follow the journey it describes. We are a B2B shop, budget around 5000 EUR,
-deadline end of November. Use my email for verification.</pre>
+lab.eleviq.solutions. We are a B2B shop, budget around 5000 EUR, deadline end
+of November. Use my email for verification.</pre>
+        <p>The assistant finds everything else on its own, through the lab's
+          <code>llms.txt</code>. It needs to be able to send requests, not just read
+          pages: ChatGPT's agent mode can, an assistant that only browses gets as far as
+          discovery. Afterwards, find its journey on the dashboard: whether it signed its
+          requests, how much intent it declared, and where it stopped.</p>
       </section>
 
     </main>

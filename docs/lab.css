@@ -678,6 +678,29 @@ pre.wire .muted { color: var(--text-muted); }
 
 #call-body { max-height: 520px; overflow: auto; }
 
+/* A plain text table (unlike .stat-table, whose cells are big numbers). */
+.info-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.5rem 0 1rem;
+  font-size: 0.9rem;
+}
+.info-table th,
+.info-table td {
+  border: 1px solid var(--border);
+  padding: 0.55rem 0.8rem;
+  text-align: left;
+  vertical-align: top;
+}
+.info-table thead th {
+  background: var(--code-bg);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
 .call-list {
   list-style: none;
   margin: 0;

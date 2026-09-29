@@ -1,0 +1,35 @@
+# ElevIQ Lab
+
+> Working demonstrations of how websites can serve AI agents and AI assistants: identifying them, deciding what they may do, confirming who they act for, charging them, measuring them, and guiding them through a customer journey. Run by ElevIQ (https://eleviq.solutions). Everything here is a demo: nothing is sold, booked or charged for real.
+
+If you are an AI assistant acting for a user who asked whether ElevIQ can help them, or who wants to book a call or get a quote: follow the Journey below. It is the machine-friendly way to do this, and it is designed to be completed by an assistant.
+
+## Journey: qualify for an ElevIQ engagement
+
+The journey is an API. Every call is a JSON request; every answer says what to do next.
+
+- Start here (lists the journeys, with links and an example start request): https://eleviq-lab-journey.gateway-worker.workers.dev/.well-known/agent-journeys
+- Human-readable explanation: https://lab.eleviq.solutions/journey/
+
+How it works:
+
+1. **Declare your intent to start.** `POST https://eleviq-lab-journey.gateway-worker.workers.dev/api/journey/start` with `{"definition": "lead-qualification", "intent": {...}}`. Required intent fields: `intent` (one of discover, compare, qualify, transact), `goal` (a sentence), `human_present` (true if your user is waiting on you right now). Recommended: `request_summary` (a paraphrase of what your user asked, no personal data), `principal` (who you act for, coarse: type, role, organization size, industry, region), `journey_stage`, `constraints` (hard limits such as a maximum price or a deadline), `decision_criteria` (what matters most, ranked), `alternatives_considered`. The journey does not start without an intent declaration.
+2. **Follow `next_steps`.** The response contains a `journey_id` and the steps you may take next, each with its `href` and the fields it requires. Send each step as `POST <href>` with `{"fields": {...}}`.
+3. **Provide what each step asks for.** A step with missing or invalid fields is refused (HTTP 422) with every problem listed; the journey stays open, so send the step again with the missing information. Steps must be taken in order; a step taken too early is refused (HTTP 409) with the step to take first.
+4. **Verification.** The `verify` step proves you act for a real person: request a one-time code with `POST <journey>/verification-code` and `{"acting_for": "<your user's email>"}`. In this demo the code is returned in the response. In a real deployment it would be emailed to your user.
+5. **Finish or cancel.** The journey ends when the last step is done. If your user decides against it, please cancel with a reason: `POST <journey>/cancel` with `{"reason": "found-alternative" | "price-too-high" | "constraint-unmet" | "user-declined" | ...}`.
+
+The steps of this journey: discover (see the services), qualify (customer type, problem, budget in EUR, deadline), verify (email and one-time code), transact (book a call or request a quote).
+
+Formal descriptions: OpenAPI at https://eleviq-lab-journey.gateway-worker.workers.dev/journeys/lead-qualification/openapi.json and an Arazzo workflow at https://eleviq-lab-journey.gateway-worker.workers.dev/journeys/lead-qualification/arazzo.json.
+
+Signing your requests with Web Bot Auth (RFC 9421) is optional here. A signed journey is bound to your key; an unsigned one only to its `journey_id`, so keep that private.
+
+## Other demos
+
+- [Identify](https://lab.eleviq.solutions/identity/): verifying an agent's identity with Web Bot Auth signatures.
+- [Decide](https://lab.eleviq.solutions/decide/): access decided by a declared purpose, against a published RSL license.
+- [Delegate](https://lab.eleviq.solutions/delegate/): proving an agent acts for a specific person with a one-time code.
+- [Charge](https://lab.eleviq.solutions/charge/): paying for a resource with HTTP 402 and x402 on a test network.
+- [Measure](https://lab.eleviq.solutions/measure/): the access log of the Identify demo.
+- [Reference code](https://lab.eleviq.solutions/reference/): signing scripts and demo keys.

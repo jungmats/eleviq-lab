@@ -581,16 +581,15 @@ The expired scenario uses a short-TTL variant of the demo definition.
 |---|---|
 | 6.1 Remote D1 schema, deploy Worker, commit page assets | Live |
 | 6.2 Reference script and all console scenarios against production | Green |
-| 6.3 Real-agent test with ChatGPT Work, prompt kept on the page | Journey visible on the dashboard with verified identity; findings written up |
+| 6.3 Test with an AI assistant (ChatGPT agent mode), prompt kept on the page; the assistant discovers the journey via `lab.eleviq.solutions/llms.txt` | Journey visible on the dashboard with verified identity; findings written up |
 | 6.4 Terse PLAN.md entry and README status table update | Done |
 
 Suggested prompt:
 
 ```text
 Find out whether ElevIQ could help my company become agent-ready. Start at
-https://<journey-worker>/.well-known/agent-journeys and follow the journey it
-describes. We are a B2B shop, budget around 5000 EUR, deadline end of
-November. Use my email for verification.
+lab.eleviq.solutions. We are a B2B shop, budget around 5000 EUR, deadline end
+of November. Use my email for verification.
 ```
 
 ### Phase 7: MCP transport
