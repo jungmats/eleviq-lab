@@ -13,7 +13,50 @@ The journey is an API. Every call is a JSON request; every answer says what to d
 
 How it works:
 
-1. **Declare your intent to start.** `POST https://eleviq-lab-journey.gateway-worker.workers.dev/api/journey/start` with `{"definition": "lead-qualification", "intent": {...}}`. Required intent fields: `intent` (one of discover, compare, qualify, transact), `goal` (a sentence), `human_present` (true if your user is waiting on you right now). Recommended: `request_summary` (a paraphrase of what your user asked, no personal data), `principal` (who you act for, coarse: type, role, organization size, industry, region), `journey_stage`, `constraints` (hard limits such as a maximum price or a deadline), `decision_criteria` (what matters most, ranked), `alternatives_considered`. The journey does not start without an intent declaration.
+1. **Declare your intent to start.** `POST https://eleviq-lab-journey.gateway-worker.workers.dev/api/journey/start` with `{"definition": "lead-qualification", "intent": {...}}`. The journey does not start without an intent declaration. Three fields are required; please also send every optional field you know the answer to, as structured data and not only inside `goal`. See the example below the list.
+   - `intent` (required): one of discover, compare, qualify, transact.
+   - `goal` (required): the job to be done, in a sentence.
+   - `human_present` (required): true if your user is waiting on you right now.
+   - `request_summary`: a paraphrase of what your user asked. Never verbatim, no personal data.
+   - `principal`: who you act for, coarse, no names or contact data. `type` (consumer, business, employee, public-sector, other), `role`, `industry`, `organization_size` (1, 2-9, 10-49, 50-249, 250-999, 1000+), `locale` (e.g. de-CH), `region` (e.g. CH).
+   - `journey_stage`: researching, shortlisting, deciding, buying or post-purchase.
+   - `constraints`: hard limits; an option that violates one is out. A budget or a deadline your user stated belongs here. Each is `{"field", "op", "value", "unit"}` with `op` one of lt, lte, gt, gte, eq, neq, in, not_in, contains; or `{"note": "..."}` for one that does not fit.
+   - `decision_criteria`: what your user weighs between options that pass every constraint, most important first. Each is `{"criterion", "direction", "weight"}` with `direction` one of minimize, maximize, prefer, avoid and `weight` from 0 to 1.
+   - `alternatives_considered`: other providers or options your user is comparing.
+   - `authority`: what you may do on your own. `can_commit` (true or false), `spend_limit`, `currency`, `needs_approval_from` (user, manager, procurement, none).
+   - `expected_deliverable`: what you will hand back to your user, e.g. a shortlist or a booking.
+   - `discovery_source`: how you found this site: web-search, model-knowledge, link, marketplace, direct or other.
+   - `agent_claim`: which assistant you are. `product` and `platform`.
+   - `agent_session`: your own task or session id, if you have one.
+
+   Example start request:
+
+   ```json
+   {
+     "definition": "lead-qualification",
+     "intent": {
+       "intent": "qualify",
+       "goal": "Find a consultant to make our B2B shop usable by AI shopping agents",
+       "human_present": true,
+       "request_summary": "Find someone who can make our shop work with AI assistants, under 5k, before end of November",
+       "principal": { "type": "business", "role": "head of e-commerce", "industry": "industrial supplies", "organization_size": "50-249", "region": "CH" },
+       "journey_stage": "shortlisting",
+       "constraints": [
+         { "field": "price", "op": "lte", "value": 5000, "unit": "EUR" },
+         { "field": "deadline", "op": "lte", "value": "2026-11-30" }
+       ],
+       "decision_criteria": [
+         { "criterion": "price", "direction": "minimize" },
+         { "criterion": "local presence", "direction": "prefer" }
+       ],
+       "alternatives_considered": ["in-house"],
+       "authority": { "can_commit": false, "needs_approval_from": "user" },
+       "expected_deliverable": "a shortlist with a recommendation",
+       "discovery_source": "web-search",
+       "agent_claim": { "product": "ExampleAssistant", "platform": "example" }
+     }
+   }
+   ```
 2. **Follow `next_steps`.** The response contains a `journey_id` and the steps you may take next, each with its `href` and the fields it requires. Send each step as `POST <href>` with `{"fields": {...}}`.
 3. **Provide what each step asks for.** A step with missing or invalid fields is refused (HTTP 422) with every problem listed; the journey stays open, so send the step again with the missing information. Steps must be taken in order; a step taken too early is refused (HTTP 409) with the step to take first.
 4. **Verification.** The `verify` step proves you act for a real person: request a one-time code with `POST <journey>/verification-code` and `{"acting_for": "<your user's email>"}`. In this demo the code is returned in the response. In a real deployment it would be emailed to your user.
