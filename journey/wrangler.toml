@@ -30,20 +30,20 @@ directory = "./public"
 [[d1_databases]]
 binding = "DB"
 database_name = "eleviq-lab-journeys"
-database_id = "00000000-0000-0000-0000-000000000000"
+database_id = "df7eb597-df9a-4425-a20f-56762b73f022"
 
 # Web Bot Auth nonce replay protection (same role as the gateway's NONCES).
 # BEFORE THE FIRST DEPLOY: npx wrangler kv namespace create JOURNEY_NONCES
 [[kv_namespaces]]
 binding = "NONCES"
-id = "00000000000000000000000000000000"
+id = "176b2d7d3def4ad0be95a2965ab02aa8"
 
 # One-time codes for the user-binding step. Binding name matches what
 # gateway/src/lib/delegation.ts expects; the namespace is this Worker's own.
 # BEFORE THE FIRST DEPLOY: npx wrangler kv namespace create JOURNEY_CODES
 [[kv_namespaces]]
 binding = "DELEGATION_CODES"
-id = "11111111111111111111111111111111"
+id = "6073d8387e394a47a62d7e9ea42d5fb7"
 
 # Optional secret for the webhook sink (src/config.ts), not set here:
 #   npx wrangler secret put JOURNEY_WEBHOOK_SECRET --config journey/wrangler.toml
