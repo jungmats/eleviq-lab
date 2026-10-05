@@ -1,3 +1,9 @@
 # ElevIQ Lab is an unlisted demo environment. Please do not index it.
+# Assistants fetching on behalf of a user are welcome: see /llms.txt.
+User-agent: ChatGPT-User
+User-agent: Claude-User
+User-agent: Perplexity-User
+Allow: /
+
 User-agent: *
 Disallow: /
