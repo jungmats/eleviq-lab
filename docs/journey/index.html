@@ -41,16 +41,16 @@
       <section class="section step">
         <h2><span class="step-n">2</span> The journey</h2>
         <p>This lab runs one journey, <code>lead-qualification</code>: an agent finds out
-          whether ElevIQ can help its user's organisation become agent-ready, then books a
-          call or requests a quote. Nothing is actually booked.</p>
+          whether ElevIQ can help its user's organisation become agent-ready, then says
+          whether the user wants a call or a quote. It is a demo: nothing is booked or sent.</p>
         <table class="info-table">
           <thead><tr><th>Step</th><th>Expected information from the agent</th><th>Server response</th></tr></thead>
           <tbody>
             <tr><td><b>start</b></td><td>Intent declaration: what the user wants</td><td>Journey id and the next step</td></tr>
             <tr><td><b>discover</b></td><td>None</td><td>Service catalogue with prices and durations</td></tr>
             <tr><td><b>qualify</b></td><td>Customer type, problem, budget in EUR, deadline</td><td>Fit assessment. A budget below 2000 EUR ends the journey as not achieved.</td></tr>
-            <tr><td><b>verify</b></td><td>The user's email and a one-time code</td><td>Confirmation that the agent acts for that person</td></tr>
-            <tr><td><b>transact</b></td><td>Book a call or request a quote</td><td>Confirmation. The journey ends as achieved.</td></tr>
+            <tr><td><b>verify</b></td><td>The user's email and the one-time code issued for it</td><td>Simulated here: the code is returned to the agent, not emailed, so nothing is proven. A real deployment emails it to the user.</td></tr>
+            <tr><td><b>transact</b></td><td>One choice: a call or a quote</td><td>A demo confirmation; nothing is booked or sent. The journey ends as achieved.</td></tr>
           </tbody>
         </table>
         <p>The server enforces this from the
