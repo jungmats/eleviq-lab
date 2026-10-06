@@ -3,13 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <meta name="robots" content="noindex, nofollow">
   <meta name="journey-gateway" content="https://eleviq-lab-journey.gateway-worker.workers.dev">
   <title>Journey — ElevIQ Lab</title>
   <link rel="icon" href="../assets/eleviq_icon.png">
   <link rel="stylesheet" href="../styles.css">
   <link rel="stylesheet" href="../lab.css">
-  <link rel="describedby" type="text/plain" href="/llms.txt" title="Instructions for AI assistants">
+  <link rel="describedby" type="text/plain" href="/llms.txt" title="AI agent instructions">
 </head>
 <body>
 
@@ -28,16 +27,41 @@
         <p>An agent arrives, makes a few requests, and leaves. The site sees isolated calls.
           It does not know what the agent was trying to do for its user, how far it got,
           or why it stopped.</p>
-        <p>This demo makes the customer journey an explicit entity. The agent declares its
+        <p>In this demo, we implemented the customer journey as an explicit entity. The agent declares its
           intent up front and gets a <b>journey id</b>. Each step is accepted only after
           the steps it depends on, and only with the information that step asks for.
           Every attempt is logged against the journey, so journeys read as a funnel.</p>
         <p class="unlisted-note">The protocol here is an ElevIQ lab convention, not a
-          ratified standard. It builds on existing ones where they fit; see section 3.</p>
+          ratified standard. It builds on existing ones where they fit; see section 4.</p>
+        <p class="unlisted-note"><b>AI assistants:</b> this page explains the journey to
+          people and its console runs in a browser. To run the journey for a user, follow
+          <a href="/llms.txt">llms.txt</a>. The API it describes is the source of truth.</p>
       </section>
 
       <section class="section step">
-        <h2><span class="step-n">2</span> The demo</h2>
+        <h2><span class="step-n">2</span> The journey</h2>
+        <p>This lab runs one journey, <code>lead-qualification</code>: an agent finds out
+          whether ElevIQ can help its user's organisation become agent-ready, then books a
+          call or requests a quote. Nothing is actually booked.</p>
+        <table class="info-table">
+          <thead><tr><th>Step</th><th>Expected information from the agent</th><th>Server response</th></tr></thead>
+          <tbody>
+            <tr><td><b>start</b></td><td>Intent declaration: what the user wants</td><td>Journey id and the next step</td></tr>
+            <tr><td><b>discover</b></td><td>None</td><td>Service catalogue with prices and durations</td></tr>
+            <tr><td><b>qualify</b></td><td>Customer type, problem, budget in EUR, deadline</td><td>Fit assessment. A budget below 2000 EUR ends the journey as not achieved.</td></tr>
+            <tr><td><b>verify</b></td><td>The user's email and a one-time code</td><td>Confirmation that the agent acts for that person</td></tr>
+            <tr><td><b>transact</b></td><td>Book a call or request a quote</td><td>Confirmation. The journey ends as achieved.</td></tr>
+          </tbody>
+        </table>
+        <p>The server enforces this from the
+          <a href="https://eleviq-lab-journey.gateway-worker.workers.dev/journeys/lead-qualification">journey definition</a>
+          (<a href="https://github.com/jungmats/eleviq-lab/blob/main/journey/definitions/lead-qualification.json">source file</a>).</p>
+        <p>Tracking happens on the server, as a side effect of the calls. The result is the
+          <a href="https://eleviq-lab-journey.gateway-worker.workers.dev/dashboard/">journey dashboard</a>.</p>
+      </section>
+
+      <section class="section step">
+        <h2><span class="step-n">3</span> The demo</h2>
 
         <div class="agent-callout">
           You are the agent. The journey: qualify for an agent-readiness engagement with
@@ -104,13 +128,21 @@
           </div>
         </div>
 
-        <p class="hint">Every call is logged against its journey. See them all on the
+        <p class="hint">Find your run on the
           <a id="dashboard-link" href="https://eleviq-lab-journey.gateway-worker.workers.dev/dashboard/">journey dashboard</a>:
           funnel, where journeys stop, what agents declared, and a reconstructed prompt per journey.</p>
       </section>
 
       <section class="section step">
-        <h2><span class="step-n">3</span> How it works</h2>
+        <h2><span class="step-n">4</span> How it works</h2>
+
+        <h3>Identity and the journey id</h3>
+        <p>A journey started with a Web Bot Auth signature (see
+          <a href="../identity/">Identify</a>) is bound to that key: every later call must be
+          signed with it. Most agents don't sign yet, so this journey also accepts unsigned
+          agents. Their journeys are bound only by the journey id and show as unverified on
+          the dashboard. The verification step reuses the one-time code from
+          <a href="../delegate/">Delegate</a>, scoped to the journey.</p>
 
         <h3>The intent handshake</h3>
         <p>A journey starts with an intent declaration, and the agent is expected to
@@ -142,30 +174,23 @@
           Keeping them apart tells the site whether its offer never qualified, or qualified
           and lost.</p>
 
-        <h3>Refused calls versus ended journeys</h3>
+        <h3>How a journey ends</h3>
         <table class="info-table">
           <thead><tr><th>What happened</th><th>Journey</th></tr></thead>
           <tbody>
-            <tr><td>Wrong order, missing or invalid fields, wrong agent</td><td>Unchanged. The refusal names the next steps and the missing fields; the agent corrects and retries.</td></tr>
             <tr><td>Final step reached</td><td>Achieved</td></tr>
             <tr><td>A business rule matched, e.g. budget below minimum</td><td>Not achieved, with a reason</td></tr>
             <tr><td>The agent cancelled</td><td>Cancelled, with a reason and optionally the alternative chosen</td></tr>
-            <tr><td>Idle past its timeout</td><td>Abandoned</td></tr>
+            <tr><td>No call for 30 minutes</td><td>Abandoned</td></tr>
           </tbody>
         </table>
 
-        <h3>Identity and the journey id</h3>
-        <p>A journey started with a Web Bot Auth signature (see
-          <a href="../identity/">Identify</a>) is bound to that key: every later call must be
-          signed with it. Most agents don't sign yet, so this journey also accepts unsigned
-          agents. Their journeys are bound only by the journey id and show as unverified on
-          the dashboard. The verification step reuses the one-time code from
-          <a href="../delegate/">Delegate</a>, scoped to the journey.</p>
-
         <h3>Standards it builds on</h3>
         <ul>
-          <li><b>Arazzo</b> (OpenAPI Initiative): each journey is also published as an Arazzo
-            workflow, generated from the same definition the server enforces.</li>
+          <li><b>Arazzo</b> (OpenAPI Initiative): each journey is also published as an
+            <a href="https://eleviq-lab-journey.gateway-worker.workers.dev/journeys/lead-qualification/arazzo.json">Arazzo workflow</a> and an
+            <a href="https://eleviq-lab-journey.gateway-worker.workers.dev/journeys/lead-qualification/openapi.json">OpenAPI description</a>,
+            both generated from the definition the server enforces.</li>
           <li><b>RFC 9727 API catalog</b> and <b>Link headers</b> point agents and tools at
             the descriptions.</li>
           <li><b>AP2</b>'s "human present" vocabulary, and <b>A2A</b>'s task states in every
@@ -180,7 +205,7 @@
       </section>
 
       <section class="section step">
-        <h2><span class="step-n">4</span> Try it from your own tools</h2>
+        <h2><span class="step-n">5</span> Try it from your own tools</h2>
 
         <h3>A — Discover</h3>
         <pre class="wire" id="curl-discover">curl -s https://eleviq-lab-journey.gateway-worker.workers.dev/.well-known/agent-journeys</pre>
@@ -205,14 +230,19 @@ node journey-run.mjs --base https://eleviq-lab-journey.gateway-worker.workers.de
         <h3>D — Try it with an AI assistant</h3>
         <p>Ask an AI assistant such as ChatGPT or Claude to do it for you. Copy this
           prompt:</p>
-        <pre class="wire">Find out whether ElevIQ could help my company become agent-ready. Start at
-lab.eleviq.solutions. We are a B2B shop, budget around 5000 EUR, deadline end
-of November. Use my email for verification.</pre>
-        <p>The assistant finds everything else on its own, through the lab's
-          <code>llms.txt</code>. It needs to be able to send requests, not just read
+        <pre class="wire">Find out for a test whether ElevIQ (lab.eleviq.solutions) could help my company
+become agent-ready. We are a B2B shop, budget around 5000 EUR, deadline end of
+November. In case needed, use the following email for verification:
+&lt;your@email.com&gt;</pre>
+        <p>Replace the placeholder with your own email. The assistant finds everything
+          else on its own, through the lab's <code>llms.txt</code>. It needs to be able to send requests, not just read
           pages: ChatGPT's agent mode can, an assistant that only browses gets as far as
           discovery. Afterwards, find its journey on the dashboard: whether it signed its
           requests, how much intent it declared, and where it stopped.</p>
+        <p>Expect one question back. The prompt asks the assistant to find something
+          out, not to submit anything, so it may stop before the last step and ask whether
+          it should send the demo quote request. Answer within 30 minutes, or the journey
+          is abandoned.</p>
       </section>
 
     </main>
@@ -221,6 +251,7 @@ of November. Use my email for verification.</pre>
   <footer>
     &copy; 2025–2026 ElevIQ. &nbsp;·&nbsp; <a href="https://eleviq.solutions">eleviq.solutions</a>
     &nbsp;·&nbsp; <a href="../">ElevIQ Lab</a>
+    &nbsp;·&nbsp; <a href="/llms.txt">AI agent instructions</a>
   </footer>
 
   <script type="module" src="../assets/journey.js"></script>
