@@ -1,20 +1,18 @@
 import { classifyVisitor, classifyReferrer } from "./classify";
 import { logPageView } from "./log";
+import { isPageView } from "./page-view";
 import type { Env } from "../../lib/env";
 
 /**
- * Fire-and-forget visitor logging for a page response — HTML or the
- * markdown representation of the same page both count as a real page
- * view. Wrapped so a classification/logging bug can never affect the
- * response (logPageView's own D1 write is separately fire-and-forget too —
- * see log.ts).
+ * Fire-and-forget visitor logging for a page response — see page-view.ts for
+ * what counts as a page view. Wrapped so a classification/logging bug can
+ * never affect the response (logPageView's own D1 write is separately
+ * fire-and-forget too — see log.ts).
  */
 export function logVisit(request: Request, response: Response, env: Env, ctx: ExecutionContext): void {
-  const contentType = response.headers.get("content-type") ?? "";
-  const isPageView = (contentType.includes("text/html") || contentType.includes("text/markdown")) && response.ok;
-  if (!isPageView) return;
-
   try {
+    if (!isPageView(request, response)) return;
+
     const cf = request.cf as { country?: string; verifiedBotCategory?: string } | undefined;
     const visitor = classifyVisitor(request.headers.get("User-Agent"));
     logPageView(env, ctx, {
