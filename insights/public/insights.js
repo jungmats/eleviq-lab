@@ -8,7 +8,12 @@
  *
  * Same-origin API (this Worker serves both the static page and /api/insights),
  * so no gateway URL indirection needed, unlike /measure/'s console.js.
+ *
+ * Stats, the daily chart and top pages cover the last 30 days. The monthly
+ * chart is the all-time view.
  */
+import { dayRange, isPartialMonth, monthRange, pivot, segmentHeight } from "./chart-data.js";
+
 const params = new URLSearchParams(location.search);
 const PATH = params.get("path"); // null in Overview mode
 
@@ -20,6 +25,7 @@ const CATS = [
   { key: "training", label: "Training", cssVar: "--cat2-training" },
   { key: "unrecognized", label: "Unrecognized", cssVar: "--cat2-unrecognized" },
 ];
+const CAT_KEYS = CATS.map((c) => c.key);
 
 const $ = (id) => document.getElementById(id);
 
@@ -54,7 +60,8 @@ function setupModeChrome() {
     crumbs.innerHTML = `<a href="./">Overview</a> &nbsp;·&nbsp; Page: <code>${esc(PATH)}</code>`;
     $("section-title").textContent = `Page: ${PATH}`;
     $("scope-hint").innerHTML = `Scoped to this one page (exact match). <a href="./">Back to the overview</a>.`;
-    $("chart-title").textContent = "Visits per day, by category — this page only";
+    $("chart-title").textContent = "Visits per day, by category — last 30 days, this page only";
+    $("monthly-title").textContent = "Visits per month, by category — this page only";
     $("top-pages-wrap").hidden = true;
     // Drop the redundant "Page" column in per-page mode — every row shares it.
     $("log-head").innerHTML = `<tr><th>Time</th><th>Visitor</th><th>Category</th><th>AI referral</th><th>Country</th></tr>`;
@@ -62,7 +69,8 @@ function setupModeChrome() {
     crumbs.innerHTML = `Overview — all pages`;
     $("section-title").textContent = "Overview — all pages";
     $("scope-hint").textContent = "";
-    $("chart-title").textContent = "Visits per day, by category";
+    $("chart-title").textContent = "Visits per day, by category — last 30 days";
+    $("monthly-title").textContent = "Visits per month, by category";
     $("top-pages-wrap").hidden = false;
   }
 }
@@ -103,31 +111,48 @@ function renderTable(entries) {
   $("log-count").textContent = entries.length;
 }
 
-/** Pivot the {day, visitor_category, n} rows into {day: {human, agent, search, training, unrecognized}}. */
-function pivotDaily(daily) {
-  const byDay = new Map();
-  for (const row of daily) {
-    if (!byDay.has(row.day)) byDay.set(row.day, { human: 0, agent: 0, search: 0, training: 0, unrecognized: 0 });
-    const bucket = byDay.get(row.day);
-    if (row.visitor_category in bucket) bucket[row.visitor_category] = row.n;
-  }
-  return [...byDay.entries()].map(([day, counts]) => ({ day, counts })).sort((a, b) => a.day.localeCompare(b.day));
+function dayBars(data) {
+  const days = dayRange(data.window.from, data.window.to);
+  return pivot(data.daily, "day", days, CAT_KEYS).map(({ period, counts }) => ({
+    period,
+    counts,
+    label: new Date(`${period}T00:00:00`).toLocaleDateString(undefined, { month: "short", day: "numeric" }),
+    partial: false,
+  }));
 }
 
-function renderChart(daily) {
-  const days = pivotDaily(daily);
-  const wrap = $("chart");
-  if (days.length === 0) {
-    wrap.innerHTML = `<p class="hint">No visits yet — load a page on eleviq.solutions and refresh.</p>`;
-    $("legend").innerHTML = "";
+function monthBars(data) {
+  const months = monthRange(data.first_day ?? data.window.to, data.window.to);
+  return pivot(data.monthly, "month", months, CAT_KEYS).map(({ period, counts }) => ({
+    period,
+    counts,
+    label: new Date(`${period}-01T00:00:00`).toLocaleDateString(undefined, { month: "short", year: "numeric" }),
+    partial: isPartialMonth(period, data.first_day ?? data.window.to, data.window.to),
+  }));
+}
+
+function renderLegend() {
+  $("legend").innerHTML = CATS.map(
+    (c) => `<span class="legend-item"><span class="legend-swatch" style="background:var(${c.cssVar})"></span>${c.label}</span>`,
+  ).join("");
+}
+
+/**
+ * Stacked bars by visitor category. `labelEvery` thins the axis labels,
+ * counting back from the last bar so the most recent one is always labelled.
+ */
+function renderChart(wrap, bars, { height, labelEvery = 1, ariaLabel, emptyText }) {
+  const totalOf = (bar) => CATS.reduce((s, c) => s + bar.counts[c.key], 0);
+  if (bars.every((bar) => totalOf(bar) === 0)) {
+    wrap.innerHTML = `<p class="hint">${emptyText}</p>`;
     return;
   }
 
-  const W = 760, H = 220, padL = 34, padB = 28, padT = 10, padR = 10;
+  const W = 760, H = height, padL = 34, padB = 28, padT = 10, padR = 10;
   const plotW = W - padL - padR, plotH = H - padT - padB;
-  const maxTotal = Math.max(1, ...days.map((d) => CATS.reduce((s, c) => s + d.counts[c.key], 0)));
+  const maxTotal = Math.max(1, ...bars.map(totalOf));
   const niceMax = Math.ceil(maxTotal / 5) * 5 || 5;
-  const bandW = plotW / days.length;
+  const bandW = plotW / bars.length;
   const barW = Math.min(48, bandW * 0.6);
   const gap = 2; // surface gap between stacked segments, per dataviz skill mark spec
 
@@ -138,31 +163,30 @@ function renderChart(daily) {
             <text x="${padL - 6}" y="${y + 3}" class="chart-axis-label" text-anchor="end">${val}</text>`;
   }).join("");
 
-  const bars = days.map((d, i) => {
+  const marks = bars.map((bar, i) => {
     const x = padL + i * bandW + (bandW - barW) / 2;
     let yCursor = padT + plotH;
     const segs = CATS.map((cat) => {
-      const n = d.counts[cat.key];
+      const n = bar.counts[cat.key];
       if (n === 0) return "";
-      const segH = Math.max(0, (n / niceMax) * plotH - gap);
+      const segH = segmentHeight(n, niceMax, plotH, gap);
       yCursor -= segH + gap;
       return `<rect x="${x}" y="${yCursor}" width="${barW}" height="${segH}"
-                style="fill:var(${cat.cssVar})" rx="2">
-                <title>${d.day} · ${cat.label}: ${n}</title>
+                class="${bar.partial ? "chart-bar-partial" : ""}" style="fill:var(${cat.cssVar})" rx="2">
+                <title>${bar.period} · ${cat.label}: ${n}</title>
               </rect>`;
     }).join("");
-    const label = new Date(d.day + "T00:00:00").toLocaleDateString(undefined, { month: "short", day: "numeric" });
-    return `${segs}<text x="${x + barW / 2}" y="${H - padB + 16}" class="chart-axis-label" text-anchor="middle">${label}</text>`;
+    const showLabel = (bars.length - 1 - i) % labelEvery === 0;
+    const label = showLabel
+      ? `<text x="${x + barW / 2}" y="${H - padB + 16}" class="chart-axis-label" text-anchor="middle">${bar.label}</text>`
+      : "";
+    return segs + label;
   }).join("");
 
-  wrap.innerHTML = `<svg viewBox="0 0 ${W} ${H}" class="viz-root chart-svg" role="img" aria-label="Visits per day, stacked by visitor category">
+  wrap.innerHTML = `<svg viewBox="0 0 ${W} ${H}" class="viz-root chart-svg" role="img" aria-label="${ariaLabel}">
     ${gridlines}
-    ${bars}
+    ${marks}
   </svg>`;
-
-  $("legend").innerHTML = CATS.map(
-    (c) => `<span class="legend-item"><span class="legend-swatch" style="background:var(${c.cssVar})"></span>${c.label}</span>`,
-  ).join("");
 }
 
 async function load() {
@@ -175,7 +199,17 @@ async function load() {
     const data = await res.json();
     $("row-limit").textContent = data.row_limit;
     renderStats(data.summary);
-    renderChart(data.daily);
+    renderChart($("chart"), dayBars(data), {
+      height: 220,
+      labelEvery: 5,
+      ariaLabel: "Visits per day for the last 30 days, stacked by visitor category",
+      emptyText: "No visits in the last 30 days.",
+    });
+    renderChart($("chart-monthly"), monthBars(data), {
+      height: 150,
+      ariaLabel: "Visits per month, stacked by visitor category",
+      emptyText: "No visits yet.",
+    });
     renderTopPages(data.top_pages || []);
     renderTable(data.entries);
   } catch (err) {
@@ -188,5 +222,6 @@ async function load() {
 
 setupModeChrome();
 setupPathJump();
+renderLegend();
 $("refresh").addEventListener("click", load);
 load();

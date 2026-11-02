@@ -71,6 +71,10 @@
   flex-shrink: 0;
 }
 
+.chart-bar-partial {
+  opacity: 0.45;
+}
+
 #top-pages-wrap {
   margin-top: 1.2rem;
 }

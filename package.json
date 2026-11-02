@@ -15,6 +15,7 @@
     "deploy:journey": "npm run test:journey && wrangler deploy --config journey/wrangler.toml",
     "test:journey": "node --test 'journey/test/**/*.test.ts'",
     "test:site-logger": "node --test 'site-logger/test/**/*.test.ts'",
+    "test:insights": "node --test 'insights/test/**/*.test.mjs'",
     "typecheck": "tsc -p gateway/tsconfig.json && tsc -p journey/tsconfig.json"
   },
   "dependencies": {
