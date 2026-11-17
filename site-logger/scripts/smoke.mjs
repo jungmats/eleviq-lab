@@ -8,7 +8,7 @@
  * its row can be found by path + time window. Prints the start time and the
  * cases as JSON — never the token. Rows are checked afterwards with a SELECT.
  *
- * The token is read from ~/.config/eleviq/internal-tokens.env and never sent:
+ * The token is read from ~/.config/eleviq/internal-tokens/eleviq.env (the token store) and never sent:
  * requests carry a short-lived marker made with it (shared/internal-marker.ts).
  */
 import { readFileSync } from "node:fs";
@@ -24,9 +24,9 @@ const here = dirname(fileURLToPath(import.meta.url));
 const demoKey = JSON.parse(readFileSync(join(here, "../../gateway/keys/demo-agent.jwk.json"), "utf8"));
 
 function readToken() {
-  const text = readFileSync(join(homedir(), ".config/eleviq/internal-tokens.env"), "utf8");
+  const text = readFileSync(join(homedir(), ".config/eleviq/internal-tokens/eleviq.env"), "utf8");
   const line = text.split("\n").find((l) => l.startsWith("ELEVIQ_INTERNAL_TOKEN="));
-  if (!line) throw new Error("ELEVIQ_INTERNAL_TOKEN missing from internal-tokens.env");
+  if (!line) throw new Error("ELEVIQ_INTERNAL_TOKEN missing from internal-tokens/eleviq.env");
   return line.slice("ELEVIQ_INTERNAL_TOKEN=".length).trim();
 }
 
