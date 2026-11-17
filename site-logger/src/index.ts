@@ -30,6 +30,7 @@ import { addDiscoveryLinkHeaders } from "./features/link-headers.ts";
 import { applyMarkdownNegotiation } from "./features/markdown/index.ts";
 import { logVisit } from "./features/logging/index.ts";
 import { originRequest } from "./lib/origin.ts";
+import { testPage } from "./features/test-path.ts";
 import type { Env } from "./lib/env.ts";
 
 // The true origin behind eleviq.solutions — bypassing Cloudflare's own proxy
@@ -39,14 +40,20 @@ const ORIGIN_HOST = "jungmats.github.io";
 
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
-    const upstream = originRequest(request);
+    // Detection field tests: /t/<id> is answered here, without the origin.
+    const test = config.testPath.enabled ? await testPage(request) : null;
     let response: Response;
-    try {
-      response = await fetch(upstream, { cf: { resolveOverride: ORIGIN_HOST } });
-    } catch {
-      // Fallback: a plain fetch, in case resolveOverride itself is ever the
-      // problem. Still origin content, just without the loop-safe override.
-      response = await fetch(upstream);
+    if (test) {
+      response = test;
+    } else {
+      const upstream = originRequest(request);
+      try {
+        response = await fetch(upstream, { cf: { resolveOverride: ORIGIN_HOST } });
+      } catch {
+        // Fallback: a plain fetch, in case resolveOverride itself is ever the
+        // problem. Still origin content, just without the loop-safe override.
+        response = await fetch(upstream);
+      }
     }
 
     if (config.markdown.enabled) {

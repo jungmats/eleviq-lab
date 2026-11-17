@@ -26,6 +26,10 @@ export interface SiteConfig {
     /** Anonymous visitor logging — see features/logging/. */
     enabled: boolean;
   };
+  testPath: {
+    /** Answer GET /t/<id> with a test page (detection field tests) — see features/test-path.ts. */
+    enabled: boolean;
+  };
 }
 
 export const config: SiteConfig = {
@@ -40,6 +44,9 @@ export const config: SiteConfig = {
     ],
   },
   logging: {
+    enabled: true,
+  },
+  testPath: {
     enabled: true,
   },
 };
