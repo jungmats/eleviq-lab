@@ -152,3 +152,20 @@ test("signalKey: equal signals → equal key; any difference → different key",
   assert.notEqual(signalKey(a), signalKey({ ...a, cf_bot_category: "AI Crawler" }));
   assert.equal(signalKey({ ua_match: null }), signalKey({}));
 });
+
+test("stored 'invalid' from a signer not on the allow-list reads as unchecked, not Invalid signature", () => {
+  // Production row 2026-11-17 14:17: DuckDuckBot, sig_agent bot.duckduckgo.com, logged invalid.
+  const c = deriveVisitor({
+    ua_match: "DuckDuckBot",
+    ua_raw: "DuckDuckBot/1.1; (+http://duckduckgo.com/duckduckbot.html)",
+    sig_status: "invalid",
+    sig_agent: "bot.duckduckgo.com",
+    internal: 0,
+  });
+  assert.ok(!c.flags.includes("signature-invalid"));
+  assert.ok(c.notes.includes("sig-unchecked"));
+  assert.equal(c.kind, "search");
+  // An allow-listed (here: demo) signer that fails stays Invalid signature.
+  const d = deriveVisitor({ ua_raw: "x/1", sig_status: "invalid", sig_agent: "eleviq.solutions", internal: 0 });
+  assert.ok(d.flags.includes("signature-invalid"));
+});

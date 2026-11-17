@@ -26,9 +26,9 @@ export function monthRange(fromDay, toDay) {
 }
 
 /**
- * Pivot {[periodKey], visitor_category, n} rows into one { period, counts }
- * per period, in the given order. Categories outside `categoryKeys` are
- * dropped, as they have no segment in the chart.
+ * Pivot {[periodKey], key, n} rows into one { period, counts } per period, in
+ * the given order. `key` is the series (a kind or an evidence level). Keys
+ * outside `categoryKeys` are dropped, as they have no segment in the chart.
  */
 export function pivot(rows, periodKey, periods, categoryKeys) {
   const byPeriod = new Map(
@@ -36,7 +36,7 @@ export function pivot(rows, periodKey, periods, categoryKeys) {
   );
   for (const row of rows) {
     const counts = byPeriod.get(row[periodKey]);
-    if (counts && row.visitor_category in counts) counts[row.visitor_category] = row.n;
+    if (counts && row.key in counts) counts[row.key] += row.n;
   }
   return periods.map((period) => ({ period, counts: byPeriod.get(period) }));
 }

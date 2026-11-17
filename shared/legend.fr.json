@@ -29,5 +29,14 @@
     "ai-training": "Entraînement IA",
     "other-bot": "Autres robots",
     "unknown": "Non identifiés"
+  },
+  "kindsTitle": "Que signifient les catégories ?",
+  "kindTexts": {
+    "people": "Ressemble à une personne qui utilise un navigateur. Ce groupe comprend aussi les agents IA qui travaillent dans un navigateur sans s'identifier.",
+    "ai-assistant": "Consulte les pages en direct pour le compte d'un utilisateur qui a posé une question à un assistant IA, par exemple ChatGPT, Claude ou Perplexity.",
+    "search": "Indexe les pages pour des résultats de recherche, recherche IA comprise, par exemple Googlebot, Bingbot ou OAI-SearchBot.",
+    "ai-training": "Collecte des pages en masse pour entraîner des modèles d'IA, par exemple GPTBot, ClaudeBot ou CCBot, sans lien avec la question d'un utilisateur précis.",
+    "other-bot": "Autres visiteurs automatisés sans finalité IA : aperçus de liens, surveillance, outils SEO, lecteurs de flux.",
+    "unknown": "Automatisé, mais rien n'indique de quoi il s'agit : pas un navigateur, pas de nom connu, non reconnu par Cloudflare. Comprend des agents et scripts développés sur mesure."
   }
 }

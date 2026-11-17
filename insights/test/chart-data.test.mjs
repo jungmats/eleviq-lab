@@ -36,21 +36,32 @@ test("monthRange does not skip a month when starting on the 31st", () => {
 
 test("pivot fills periods without visits with zeros, in period order", () => {
   const rows = [
-    { day: "2026-11-02", visitor_category: "human", n: 5 },
-    { day: "2026-11-02", visitor_category: "agent", n: 1 },
+    { day: "2026-11-02", key: "people", n: 5 },
+    { day: "2026-11-02", key: "ai-assistant", n: 1 },
   ];
-  assert.deepEqual(pivot(rows, "day", ["2026-11-01", "2026-11-02"], ["human", "agent"]), [
-    { period: "2026-11-01", counts: { human: 0, agent: 0 } },
-    { period: "2026-11-02", counts: { human: 5, agent: 1 } },
+  assert.deepEqual(pivot(rows, "day", ["2026-11-01", "2026-11-02"], ["people", "ai-assistant"]), [
+    { period: "2026-11-01", counts: { people: 0, "ai-assistant": 0 } },
+    { period: "2026-11-02", counts: { people: 5, "ai-assistant": 1 } },
   ]);
 });
 
 test("pivot ignores periods and categories that have no bar", () => {
   const rows = [
-    { month: "2026-08", visitor_category: "human", n: 9 },
-    { month: "2026-09", visitor_category: "uncategorized", n: 4 },
+    { month: "2026-08", key: "people", n: 9 },
+    { month: "2026-09", key: "unlisted", n: 4 },
   ];
-  assert.deepEqual(pivot(rows, "month", ["2026-09"], ["human"]), [{ period: "2026-09", counts: { human: 0 } }]);
+  assert.deepEqual(pivot(rows, "month", ["2026-09"], ["people"]), [{ period: "2026-09", counts: { people: 0 } }]);
+});
+
+test("pivot adds up repeated keys in one period (e.g. evidence levels)", () => {
+  const rows = [
+    { month: "2026-11", key: "declared", n: 2 },
+    { month: "2026-11", key: "declared", n: 3 },
+    { month: "2026-11", key: "verified", n: 1 },
+  ];
+  assert.deepEqual(pivot(rows, "month", ["2026-11"], ["verified", "declared"]), [
+    { period: "2026-11", counts: { verified: 1, declared: 5 } },
+  ]);
 });
 
 test("the first month is partial only if logging started after the 1st", () => {

@@ -29,5 +29,14 @@
     "ai-training": "AI training",
     "other-bot": "Other bots",
     "unknown": "Unidentified"
+  },
+  "kindsTitle": "What do the kinds mean?",
+  "kindTexts": {
+    "people": "Looks like a person using a browser. This group also includes AI agents that work inside a browser without identifying themselves.",
+    "ai-assistant": "Fetches pages live on behalf of a user who asked an AI assistant something, for example ChatGPT, Claude or Perplexity answering a question.",
+    "search": "Indexes pages for search results, AI search included, for example Googlebot, Bingbot or OAI-SearchBot.",
+    "ai-training": "Collects pages in bulk to train AI models, for example GPTBot, ClaudeBot or CCBot. Not tied to any one user's question.",
+    "other-bot": "Other automated visitors without an AI purpose: link previews, monitoring, SEO tools, feed readers.",
+    "unknown": "Automated, but nothing says what it is: not a browser, no known name, not recognised by Cloudflare. Includes custom-built agents and scripts."
   }
 }

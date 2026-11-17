@@ -25,10 +25,64 @@
       <section class="section step">
         <h2><span class="step-n">1</span> <span id="section-title">Overview — all pages</span></h2>
         <p class="hint" id="scope-hint"></p>
-        <p class="hint" id="uncategorized-hint" hidden><b>Uncategorized</b> rows predate the category upgrade (site-logger started writing it on 2026-09-11) — not a fifth real category, just data logged before that field existed.</p>
+
+        <p class="banner banner-internal" id="banner-internal" role="status" hidden>Includes ElevIQ test traffic</p>
+
+        <!-- DSH-1: prominent, not inside the filter bar -->
+        <div class="hide-people-row">
+          <label class="switch" for="hide-people">
+            <input type="checkbox" id="hide-people" role="switch">
+            <span class="switch-track" aria-hidden="true"></span>
+            <span class="switch-label">Hide human visits</span>
+          </label>
+          <span class="hint" id="hide-people-hint">Show only AI and bot traffic.</span>
+        </div>
+
+        <!-- DSH-2, DSH-9 -->
+        <div class="filter-bar" id="filter-bar">
+          <div class="filter">
+            <div class="filter-head">
+              <label for="min-level" class="label">Minimum evidence</label>
+              <button type="button" class="info-btn" id="legend-info" aria-haspopup="dialog" aria-label="How sure are we?" title="How sure are we?">i</button>
+            </div>
+            <select id="min-level">
+              <option value="all">All</option>
+              <option value="attested">Verified + Attested</option>
+              <option value="verified">Verified only</option>
+            </select>
+          </div>
+          <fieldset class="filter kinds" id="kinds" aria-labelledby="kinds-label">
+            <div class="filter-head">
+              <span class="label" id="kinds-label">Kinds</span>
+              <button type="button" class="info-btn" id="kinds-info" aria-haspopup="dialog" aria-label="What do the kinds mean?" title="What do the kinds mean?">i</button>
+            </div>
+            <div class="kind-checks" id="kind-checks"></div>
+          </fieldset>
+          <div class="filter filter-refresh">
+            <button class="send-btn" id="refresh">Refresh</button>
+          </div>
+        </div>
+
+        <!-- DSH-5b: legend overlay; kinds overlay -->
+        <dialog class="overlay" id="legend-dialog" aria-labelledby="legend-title">
+          <div class="overlay-head">
+            <h3 id="legend-title">How sure are we?</h3>
+            <button type="button" class="overlay-close" data-close aria-label="Close">×</button>
+          </div>
+          <div id="legend-body"></div>
+        </dialog>
+        <dialog class="overlay" id="kinds-dialog" aria-labelledby="kinds-title">
+          <div class="overlay-head">
+            <h3 id="kinds-title">What do the kinds mean?</h3>
+            <button type="button" class="overlay-close" data-close aria-label="Close">×</button>
+          </div>
+          <div id="kinds-body"></div>
+        </dialog>
+
+        <div id="period-notes" class="period-notes"></div>
 
         <form id="path-jump" class="path-jump">
-          <label for="path-input" class="label">Jump to a page (exact path — not everything makes the top-15 or the last 100 raw events)</label>
+          <label for="path-input" class="label">Jump to a page (exact path — not every page makes the top 15)</label>
           <div class="path-jump-row">
             <input type="text" id="path-input" placeholder="/services/ai-agent-readiness.html">
             <button type="submit" class="send-btn">Go</button>
@@ -38,91 +92,114 @@
         <p class="pane-title">Last 30 days</p>
         <div class="table-scroll">
           <table class="stat-table" id="stats">
-            <thead>
-              <tr><th>Total</th><th>Human</th><th>Agent</th><th>Search</th><th>Training</th><th>Unrecognized</th><th>Uncategorized</th></tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td id="stat-total">—</td>
-                <td id="stat-human">—</td>
-                <td id="stat-agent">—</td>
-                <td id="stat-search">—</td>
-                <td id="stat-training">—</td>
-                <td id="stat-unrecognized">—</td>
-                <td id="stat-uncategorized">—</td>
-              </tr>
-            </tbody>
+            <thead><tr id="stats-head"></tr></thead>
+            <tbody><tr id="stats-row"></tr></tbody>
           </table>
         </div>
 
-        <button class="send-btn" id="refresh">Refresh</button>
-
-        <div class="chart-wrap" id="chart-wrap">
-          <p class="pane-title" id="chart-title">Visits per day, by category — last 30 days</p>
+        <div class="chart-wrap">
+          <p class="pane-title" id="chart-title">Visits per day, by kind — last 30 days</p>
           <div id="chart"></div>
           <div class="chart-legend" id="legend"></div>
         </div>
 
         <div class="chart-wrap">
-          <p class="pane-title" id="monthly-title">Visits per month, by category</p>
+          <p class="pane-title" id="monthly-title">Visits per month, by kind</p>
           <div id="chart-monthly"></div>
         </div>
 
-        <div id="top-pages-wrap">
+        <!-- DSH-8 -->
+        <div class="chart-wrap">
+          <p class="pane-title" id="levels-title">Visits per month, by evidence level — AI and bots only</p>
+          <div id="chart-levels"></div>
+          <div class="chart-legend" id="legend-levels"></div>
+        </div>
+
+        <!-- DSH-6 -->
+        <div class="block">
+          <p class="pane-title">Agent visits — last 30 days, per agent</p>
+          <div class="table-scroll">
+            <table class="log-table" id="agents-table">
+              <thead id="agents-head"></thead>
+              <tbody id="agents-rows"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- DSH-7 -->
+        <div class="block">
+          <p class="pane-title">People referred by AI assistants — last 30 days</p>
+          <p class="hint" id="referrals-hint" hidden>Referred visitors are human visits, so they are hidden while <b>Hide human visits</b> is on.</p>
+          <div class="table-scroll">
+            <table class="log-table" id="referrals-table">
+              <thead><tr><th>Assistant</th><th>Via link (Referer)</th><th>Via tagged link (utm)</th><th>Total</th></tr></thead>
+              <tbody id="referrals-rows"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="block" id="top-pages-wrap">
           <p class="pane-title">Top pages — last 30 days</p>
           <div class="table-scroll">
             <table class="log-table" id="top-pages-table">
-              <thead>
-                <tr><th>Page</th><th>Visits</th><th>Agent visits</th></tr>
-              </thead>
+              <thead><tr><th>Page</th><th>Visits</th><th>AI and bot visits</th><th>Share</th></tr></thead>
               <tbody id="top-pages-rows"></tbody>
             </table>
           </div>
         </div>
 
-        <details class="log-details">
-          <summary>Raw events (<span id="log-count">—</span> of last <span id="row-limit">100</span>, newest first)</summary>
-          <div class="log-table-wrap">
+        <!-- DSH-4, DSH-11 -->
+        <div class="block" id="events">
+          <p class="pane-title">Events — newest first<span id="log-scope"></span></p>
+          <div class="events-controls">
+            <label class="inline-filter">Show
+              <select id="limit">
+                <option value="10">10</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+                <option value="500">500</option>
+              </select>
+            </label>
+            <label class="inline-filter">Only
+              <select id="flagged">
+                <option value="">All events</option>
+                <option value="contradicted" id="flagged-contradicted">Claim not confirmed</option>
+                <option value="signature-invalid" id="flagged-invalid">Invalid signature</option>
+              </select>
+            </label>
+            <span class="hint" id="log-count-hint"></span>
+          </div>
+          <div class="table-scroll">
             <table class="log-table" id="log-table">
-              <thead id="log-head">
-                <tr><th>Time</th><th>Page</th><th>Visitor</th><th>Category</th><th>AI referral</th><th>Country</th></tr>
-              </thead>
+              <thead id="log-head"></thead>
               <tbody id="log-rows"></tbody>
             </table>
           </div>
-        </details>
+        </div>
       </section>
 
       <section class="section step">
         <h2><span class="step-n">2</span> Where this data comes from</h2>
         <p>Every HTML response from <code>eleviq.solutions</code> is logged by a
-          transparent Worker (<code>site-logger</code>) that sits in front of the site —
-          it fetches the real page and returns it completely unchanged, and separately
-          writes one anonymous row per view: page, a visitor category, which AI
-          assistant referred the click (if any), and country. No cookies, no visitor id,
-          no raw IP.</p>
-        <p>The category comes from the User-Agent string, matched against known
-          signatures (the same taxonomy Cloudflare's own AI Crawl Control uses):</p>
-        <dl class="cat-defs">
-          <dt>Agent</dt><dd>a specific person asked an AI assistant something right now, and it fetched this page live to answer — ChatGPT‑User, Claude‑User, Perplexity‑User, and similar. This is the attribution signal: a real request on someone's behalf, not background crawling.</dd>
-          <dt>Human</dt><dd>looks like an ordinary browser, no known agent signature.</dd>
-          <dt>Search</dt><dd>indexing crawlers — Googlebot, Bingbot, OAI‑SearchBot, and similar.</dd>
-          <dt>Training</dt><dd>bulk crawlers that train models — GPTBot, CCBot, and similar. Not tied to any one person's request.</dd>
-          <dt>Unrecognized</dt><dd>doesn't match a known signature and doesn't look like a browser either — most often a home‑grown or unlabelled agent (a bare HTTP client's default User-Agent, e.g. <code>python-requests</code> or <code>curl</code>).</dd>
-        </dl>
-        <p><b>The honest limit:</b> this is a heuristic, string-matched signal — the same
-          kind <code>request.cf.verifiedBotCategory</code> is, not a cryptographic proof
-          (see <a href="https://lab.eleviq.solutions/identity/">Demo 1</a> for what a real proof looks like).
-          A UA that deliberately claims to be a normal browser is indistinguishable from a
-          normal browser by this method, full stop. All five categories are logged for
-          now, deliberately — nothing is filtered out yet.</p>
-        <p>This page shows real production traffic to <code>eleviq.solutions</code>, unlike
-          Demo 1's own access log (public, demo-only data) — so it sits behind
-          <b>Cloudflare Access</b> at the edge rather than being left open.</p>
+          transparent Worker (<code>site-logger</code>) that sits in front of the site. It
+          returns the page unchanged and separately writes one anonymous row per view:
+          the page, the signals that identify the visitor, which AI assistant referred the
+          visit (if any), and the country. No cookies, no visitor id, no IP address, and no
+          browser User-Agent string.</p>
+        <p>Each visit is sorted into a <b>kind</b> (people, AI assistants, search, AI
+          training, other bots, unidentified) and, where there is evidence of who the
+          visitor is, an <b>evidence level</b>. The <b>i</b> buttons next to the filters explain
+          each kind, each level, and what this method cannot see.</p>
+        <p>The classification runs when this page loads, over the stored signals, so
+          older visits are shown with the same rules as new ones.</p>
+        <p>This page shows real production traffic to <code>eleviq.solutions</code>, so it
+          sits behind <b>Cloudflare Access</b>.</p>
       </section>
 
     </main>
   </div>
+
+  <div class="tip" id="tip" role="tooltip" hidden></div>
 
   <footer>
     &copy; 2025–2026 ElevIQ. &nbsp;·&nbsp; <a href="https://eleviq.solutions">eleviq.solutions</a>

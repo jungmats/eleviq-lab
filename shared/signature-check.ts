@@ -222,7 +222,10 @@ export function createSignatureChecker(options: CheckerOptions) {
       let status: SigStatus;
       if (progress.stage === "unverifiable") status = "unverifiable";
       else if (progress.stage === "key-not-found" || progress.stage === "resolved") status = "invalid";
-      // Failed before our resolver ran: malformed, expired, coverage → invalid; unsupported algorithm → unverifiable.
+      // Failed before our resolver ran. A signer not on the allow-list is never judged (LOG-8,
+      // CLS-6): unverifiable. Otherwise malformed, expired, coverage → invalid; unsupported
+      // algorithm → unverifiable.
+      else if (!operators.some((o) => hostOf(o.origin) === progress.agentHost)) status = "unverifiable";
       else status = /unsupported|is not allowed/i.test(errorChain(err)) ? "unverifiable" : "invalid";
       return { sig_status: status, sig_agent: progress.agentHost, keyid: progress.keyid, operator: null };
     }

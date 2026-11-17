@@ -1,16 +1,14 @@
 # insights.eleviq.solutions dashboard — Cloudflare Worker + static assets.
 #
 #   npx wrangler dev    --config insights/wrangler.toml   local: http://localhost:8789
-#   npx wrangler deploy --config insights/wrangler.toml    -> eleviq-insights.<subdomain>.workers.dev
+#   npx wrangler deploy --config insights/wrangler.toml    -> insights.eleviq.solutions (behind Access)
 #
 # Reads the same D1 database site-logger writes to (eleviq-site-log) —
 # read-only, no writes from here.
 #
-# NOT yet bound to insights.eleviq.solutions — the [[routes]] block below is
-# commented out on purpose, same pattern as site-logger/wrangler.toml. This
-# page shows real eleviq.solutions visitor data, so it must go live behind
-# Cloudflare Access (see PLAN.md) — set that up first, then uncomment routes
-# and deploy.
+# LIVE at insights.eleviq.solutions, behind Cloudflare Access. The page shows
+# real visitor data, so it must only be reachable through Access (hence
+# workers_dev = false below).
 #
 # custom_domain = true (not zone_name + wildcard, unlike site-logger) —
 # insights.eleviq.solutions is a brand-new subdomain with no existing DNS
@@ -20,7 +18,16 @@
 name = "eleviq-insights"
 main = "src/index.ts"
 compatibility_date = "2026-09-01"
-workers_dev = true
+# false: the automatic *.workers.dev address is not protected by Cloudflare
+# Access, so it would expose the dashboard without login. Reachable only via
+# insights.eleviq.solutions (behind Access).
+workers_dev = false
+
+[vars]
+# "true" includes ElevIQ's own test traffic and shows the banner "includes
+# ElevIQ test traffic" (requirements INT-4). Consultant deployments only;
+# client-facing deployments keep "false". There is no UI switch (INT-3).
+SHOW_INTERNAL = "false"
 
 [observability]
 enabled = true

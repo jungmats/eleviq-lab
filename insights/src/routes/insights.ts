@@ -1,137 +1,136 @@
 /**
- * GET /api/insights — the dashboard's one data source. Reads
- * site-logger/schema.sql's page_views table (written by the site-logger
- * Worker on every HTML response to eleviq.solutions). Read-only.
+ * GET /api/insights — the dashboard's one data source. Reads site-logger's
+ * page_views table (read-only) and classifies every row through the shared
+ * `deriveVisitor` (see lib/visits.ts).
  *
- * summary, daily and top_pages cover the last 30 days. monthly is all-time
- * and entries are simply the newest rows.
+ * Query parameters (all optional; every block honours them, DSH-3):
+ *   path=<exact pathname>        scope to one page (top_pages then empty)
+ *   hide_people=1                DSH-1
+ *   min=all|attested|verified    DSH-2
+ *   kinds=<csv>                  DSH-9
+ *   flagged=contradicted|signature-invalid   DSH-11 (events only)
+ *   limit=10|50|100|500          events shown (default 10)
+ *   lang=en|fr                   legend texts
  *
- * ?path=<exact pathname> narrows everything except top_pages (which only
- * makes sense as a whole-site view) to that one page. Exact match, not a
- * prefix — "/technologies.html" matches only that page, not
- * "/technologies.html?x=1" or a subpath.
+ * Internal rows (ElevIQ's own test traffic) are excluded in SQL unless the
+ * deployment sets SHOW_INTERNAL="true" (INT-3, INT-4) — no UI switch.
+ *
+ * summary, daily, top_pages, agents and referrals cover the last 30 days;
+ * monthly and monthly_levels are all-time; entries are the newest matches.
  */
-import { json } from "../lib/http";
-import type { Env } from "../lib/env";
+import { LEGENDS } from "../../../shared/index.ts";
+import { json } from "../lib/http.ts";
+import type { Env } from "../lib/env.ts";
+import {
+  aggregateMonthly,
+  aggregateWindow,
+  classifier,
+  PAGE_VIEW_SIGNALS,
+  parseFilters,
+  passes,
+  periodNote,
+  toEntry,
+  type Entry,
+  type Tuple,
+} from "../lib/visits.ts";
 
-const ROW_LIMIT = 100;
+const SCAN_PAGE = 1000;
+const SCAN_MAX = 20_000;
 const TOP_PAGES_LIMIT = 15;
 const WINDOW_DAYS = 30; // including today, in UTC like the stored timestamps
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-interface SummaryRow {
-  visitor_category: string;
-  n: number;
-}
-interface DailyRow {
-  day: string;
-  visitor_category: string;
-  n: number;
-}
-interface MonthlyRow {
-  month: string;
-  visitor_category: string;
-  n: number;
-}
-interface TopPageRow {
-  path: string;
-  n: number;
-  agent_n: number;
-}
-interface EntryRow {
-  ts: string;
-  path: string;
-  visitor: string;
-  visitor_category: string;
-  referrer_agent: string | null;
-  country: string | null;
-}
+const COLS = PAGE_VIEW_SIGNALS.join(", ");
 
 export async function handleInsights(request: Request, env: Env): Promise<Response> {
   const url = new URL(request.url);
-  const path = url.searchParams.get("path"); // exact match, not a prefix
-
-  // COALESCE: rows written before visitor_category existed (pre-migration —
-  // see schema.sql) have NULL there, not a real category. Surface them as
-  // their own "uncategorized" bucket rather than as SQL NULL — that keeps
-  // the per-category counts summing to the total instead of silently
-  // falling short, and avoids "null" leaking into the UI.
-  const CAT = `COALESCE(visitor_category, 'uncategorized')`;
+  const parsed = parseFilters(url.searchParams);
+  if (!parsed.ok) return json({ error: "bad_request", detail: parsed.error }, 400);
+  const f = parsed.filters;
+  const path = url.searchParams.get("path") || null; // exact match, not a prefix
+  const showInternal = env.SHOW_INTERNAL === "true";
 
   const today = new Date().toISOString().slice(0, 10);
   const from = new Date(Date.now() - (WINDOW_DAYS - 1) * DAY_MS).toISOString().slice(0, 10);
 
-  const summaryStmt = path
-    ? env.DB.prepare(
-        `SELECT ${CAT} as visitor_category, COUNT(*) as n FROM page_views WHERE ts >= ? AND path = ? GROUP BY 1`,
-      ).bind(from, path)
-    : env.DB.prepare(
-        `SELECT ${CAT} as visitor_category, COUNT(*) as n FROM page_views WHERE ts >= ? GROUP BY 1`,
-      ).bind(from);
+  // Shared WHERE fragments; values always bound, never interpolated.
+  const where: string[] = [];
+  const binds: unknown[] = [];
+  if (path) {
+    where.push("path = ?");
+    binds.push(path);
+  }
+  if (!showInternal) where.push("internal = 0");
+  const and = (extra: string[] = []) => {
+    const all = [...extra, ...where];
+    return all.length ? `WHERE ${all.join(" AND ")}` : "";
+  };
 
-  const dailyStmt = path
-    ? env.DB.prepare(
-        `SELECT substr(ts, 1, 10) as day, ${CAT} as visitor_category, COUNT(*) as n
-         FROM page_views WHERE ts >= ? AND path = ? GROUP BY day, 2 ORDER BY day ASC`,
-      ).bind(from, path)
-    : env.DB.prepare(
-        `SELECT substr(ts, 1, 10) as day, ${CAT} as visitor_category, COUNT(*) as n
-         FROM page_views WHERE ts >= ? GROUP BY day, 2 ORDER BY day ASC`,
-      ).bind(from);
+  const windowStmt = env.DB.prepare(
+    `SELECT substr(ts, 1, 10) AS period, path, ${COLS}, COUNT(*) AS n
+     FROM page_views ${and(["ts >= ?"])} GROUP BY period, path, ${COLS}`,
+  ).bind(from, ...binds);
 
-  const monthlyStmt = path
-    ? env.DB.prepare(
-        `SELECT substr(ts, 1, 7) as month, ${CAT} as visitor_category, COUNT(*) as n
-         FROM page_views WHERE path = ? GROUP BY month, 2 ORDER BY month ASC`,
-      ).bind(path)
-    : env.DB.prepare(
-        `SELECT substr(ts, 1, 7) as month, ${CAT} as visitor_category, COUNT(*) as n
-         FROM page_views GROUP BY month, 2 ORDER BY month ASC`,
-      );
+  const monthlyStmt = env.DB.prepare(
+    `SELECT substr(ts, 1, 7) AS period, ${COLS}, COUNT(*) AS n
+     FROM page_views ${and()} GROUP BY period, ${COLS}`,
+  ).bind(...binds);
 
-  const recentStmt = path
-    ? env.DB.prepare(
-        `SELECT ts, path, visitor, ${CAT} as visitor_category, referrer_agent, country
-         FROM page_views WHERE path = ? ORDER BY ts DESC LIMIT ?`,
-      ).bind(path, ROW_LIMIT)
-    : env.DB.prepare(
-        `SELECT ts, path, visitor, ${CAT} as visitor_category, referrer_agent, country
-         FROM page_views ORDER BY ts DESC LIMIT ?`,
-      ).bind(ROW_LIMIT);
-
-  const [summary, daily, monthly, recent, topPages, firstDay] = await Promise.all([
-    summaryStmt.all<SummaryRow>(),
-    dailyStmt.all<DailyRow>(),
-    monthlyStmt.all<MonthlyRow>(),
-    recentStmt.all<EntryRow>(),
-    // Whole-site only — "top pages" has no meaning once already scoped to one page.
-    env.DB.prepare(
-      `SELECT path, COUNT(*) as n, SUM(CASE WHEN visitor_category = 'agent' THEN 1 ELSE 0 END) as agent_n
-       FROM page_views WHERE ts >= ? GROUP BY path ORDER BY n DESC LIMIT ?`,
-    )
-      .bind(from, TOP_PAGES_LIMIT)
-      .all<TopPageRow>(),
-    // Always site-wide: when logging started decides which month is partial,
-    // not when one page was first visited.
-    env.DB.prepare(`SELECT substr(MIN(ts), 1, 10) as day FROM page_views`).first<{ day: string | null }>(),
+  const [win, months, firstDay, sigFrom] = await Promise.all([
+    windowStmt.all<Tuple>(),
+    monthlyStmt.all<Tuple>(),
+    // Always site-wide: when logging started decides which month is partial.
+    env.DB.prepare(`SELECT substr(MIN(ts), 1, 10) AS day FROM page_views`).first<{ day: string | null }>(),
+    // DSH-13 / INT-5: signature checking and the internal marker went live together.
+    env.DB.prepare(`SELECT MIN(ts) AS ts FROM page_views WHERE sig_status IS NOT NULL`).first<{ ts: string | null }>(),
   ]);
 
-  const byCategory: Record<string, number> = {};
-  let total = 0;
-  for (const row of summary.results ?? []) {
-    byCategory[row.visitor_category] = row.n;
-    total += row.n;
+  const classify = classifier();
+  const agg = aggregateWindow(win.results ?? [], f, classify, TOP_PAGES_LIMIT);
+  const { monthly, monthly_levels } = aggregateMonthly(months.results ?? [], f, classify);
+
+  // Events: newest rows passing every filter, scanned page by page.
+  const entries: Entry[] = [];
+  let scanned = 0;
+  while (entries.length < f.limit && scanned < SCAN_MAX) {
+    const page = await env.DB.prepare(
+      `SELECT ts, path, country, ${COLS} FROM page_views ${and()} ORDER BY ts DESC LIMIT ? OFFSET ?`,
+    )
+      .bind(...binds, SCAN_PAGE, scanned)
+      .all<Tuple & { ts: string; path: string; country: string | null }>();
+    const rows = page.results ?? [];
+    for (const row of rows) {
+      const c = classify(row);
+      if (passes(c, f, true)) entries.push(toEntry(row, c));
+      if (entries.length >= f.limit) break;
+    }
+    scanned += rows.length;
+    if (rows.length < SCAN_PAGE) break;
   }
 
+  const first = firstDay?.day ?? null;
   return json({
-    path: path ?? null,
+    path,
+    filters: { hide_people: f.hidePeople, min: f.min, kinds: f.kinds, flagged: f.flagged, lang: f.lang, limit: f.limit },
     window: { days: WINDOW_DAYS, from, to: today },
-    first_day: firstDay?.day ?? null,
-    summary: { total, by_category: byCategory },
-    daily: daily.results ?? [],
-    monthly: monthly.results ?? [],
-    top_pages: path ? [] : topPages.results ?? [],
-    entries: recent.results ?? [],
-    row_limit: ROW_LIMIT,
+    first_day: first,
+    show_internal: showInternal,
+    notes: {
+      // The monthly chart is all-time, so a note applies whenever data reaches back that far.
+      sig_checked_from: periodNote(sigFrom?.ts ?? null, first),
+      internal_from: periodNote(sigFrom?.ts ?? null, first),
+    },
+    summary: agg.summary,
+    daily: agg.daily,
+    monthly,
+    monthly_levels,
+    top_pages: path ? [] : agg.top_pages,
+    agents: agg.agents,
+    referrals: agg.referrals,
+    entries,
+    entries_scanned: scanned,
+    entries_capped: entries.length < f.limit && scanned >= SCAN_MAX,
+    row_limit: f.limit,
+    legend: LEGENDS[f.lang],
   });
 }

@@ -103,7 +103,10 @@ function normalise(s: VisitorSignals): Normalised {
     // ua_raw is stored for every non-browser UA, so null means browser-looking.
     browserLooking: s.ua_raw == null ? true : isBrowserUserAgent(s.ua_raw),
     cfCategory,
-    sigStatus: s.sig_status as SigStatus,
+    // LOG-8 / CLS-6: a signer that is not on the allow-list was never checked against
+    // its key, so "invalid" from it (a failure before the key lookup) means "could not
+    // check", not "false". Corrects rows stored before the checker fix (2026-11-17).
+    sigStatus: s.sig_status === "invalid" && !operatorByHost(s.sig_agent) ? "unverifiable" : (s.sig_status as SigStatus),
     sigAgent: s.sig_agent ? s.sig_agent : null,
     referral: s.referrer_agent && s.referral_signal ? { by: s.referrer_agent, signal: s.referral_signal } : null,
     internal: Boolean(s.internal),

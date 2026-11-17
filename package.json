@@ -15,8 +15,8 @@
     "deploy:journey": "npm run test:journey && wrangler deploy --config journey/wrangler.toml",
     "test:journey": "node --test 'journey/test/**/*.test.ts'",
     "test:site-logger": "node --test 'site-logger/test/**/*.test.ts'",
-    "test:insights": "node --test 'insights/test/**/*.test.mjs'",
-    "typecheck": "tsc -p gateway/tsconfig.json && tsc -p journey/tsconfig.json && tsc -p shared/tsconfig.json && tsc -p site-logger/tsconfig.json",
+    "test:insights": "node --test 'insights/test/**/*.test.mjs' 'insights/test/**/*.test.ts'",
+    "typecheck": "tsc -p gateway/tsconfig.json && tsc -p journey/tsconfig.json && tsc -p shared/tsconfig.json && tsc -p site-logger/tsconfig.json && tsc -p insights/tsconfig.json",
     "test:shared": "node --test 'shared/test/**/*.test.ts'"
   },
   "dependencies": {

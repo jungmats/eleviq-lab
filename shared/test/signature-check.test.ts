@@ -180,3 +180,17 @@ test("keyid missing and refetch fails → unverifiable", async () => {
   fail = true;
   assert.equal((await c.check(req(await signed(untrusted, { agent: "https://chatgpt.com" })))).sig_status, "unverifiable");
 });
+
+test("expired, signer not on the allow-list → unverifiable, never invalid (LOG-8, CLS-6)", async () => {
+  // Seen in production 2026-11-17: DuckDuckBot (Signature-Agent bot.duckduckgo.com) failed a
+  // check that runs before the key lookup and was logged invalid.
+  const c = createSignatureChecker({ operators: OPS, acceptDemo: true, now: () => new Date(T0.getTime() + 3 * 3600_000) });
+  const r = await c.check(req(await signed(untrusted, { agent: "https://bot.duckduckgo.com" })));
+  assert.equal(r.sig_status, "unverifiable");
+  assert.equal(r.sig_agent, "bot.duckduckgo.com");
+});
+
+test("expired, allow-listed signer → still invalid", async () => {
+  const c = createSignatureChecker({ operators: OPS, acceptDemo: true, now: () => new Date(T0.getTime() + 3 * 3600_000) });
+  assert.equal((await c.check(req(await signed(untrusted, { agent: "https://chatgpt.com" })))).sig_status, "invalid");
+});

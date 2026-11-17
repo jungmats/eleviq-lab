@@ -4,4 +4,7 @@ export interface Env {
   /** Static assets (public/) — bound via wrangler.toml's [assets]; index.ts only
    *  handles /api/*, everything else is served directly from this binding. */
   ASSETS: Fetcher;
+  /** "true" includes ElevIQ's own test traffic (internal = 1) and shows a banner (INT-4).
+   *  Per deployment, consultant only; never a UI switch (INT-3). */
+  SHOW_INTERNAL?: string;
 }

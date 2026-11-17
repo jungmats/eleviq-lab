@@ -12,9 +12,9 @@
  * (public, demo-only data), this is real production visitor data about
  * eleviq.solutions itself, so it is not left open. See PLAN.md.
  */
-import { handleInsights } from "./routes/insights";
-import { json } from "./lib/http";
-import type { Env } from "./lib/env";
+import { handleInsights } from "./routes/insights.ts";
+import { json } from "./lib/http.ts";
+import type { Env } from "./lib/env.ts";
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
