@@ -16,7 +16,7 @@
     "declared": "Déclaré"
   },
   "flags": {
-    "contradicted": "Nom non confirmé",
+    "contradicted": "Allégation non confirmée",
     "signature-invalid": "Signature invalide"
   },
   "notes": {
@@ -26,7 +26,7 @@
     "people": "Personnes",
     "ai-assistant": "Assistants IA",
     "search": "Moteurs de recherche",
-    "ai-training": "Collecte pour l'entraînement IA",
+    "ai-training": "Entraînement IA",
     "other-bot": "Autres robots",
     "unknown": "Non identifiés"
   }
