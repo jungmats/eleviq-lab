@@ -8,7 +8,8 @@
  * its row can be found by path + time window. Prints the start time and the
  * cases as JSON — never the token. Rows are checked afterwards with a SELECT.
  *
- * The token is read from ~/.config/eleviq/internal-tokens.env.
+ * The token is read from ~/.config/eleviq/internal-tokens.env and never sent:
+ * requests carry a short-lived marker made with it (shared/internal-marker.ts).
  */
 import { readFileSync } from "node:fs";
 import { homedir } from "node:os";
@@ -16,6 +17,7 @@ import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { sign, generateNonce } from "web-bot-auth";
 import { signerFromJWK } from "web-bot-auth/crypto";
+import { createInternalMarker } from "../../shared/internal-marker.ts";
 
 const BASE = process.argv[2] ?? "https://eleviq.solutions";
 const here = dirname(fileURLToPath(import.meta.url));
@@ -52,9 +54,13 @@ function tamper(sig) {
   return sig.slice(0, i) + (sig[i] === "A" ? "B" : "A") + sig.slice(i + 1);
 }
 
-const internal = { "X-ElevIQ-Internal": TOKEN };
-// Same length and format as a real token, but not the token.
-const wrong = { "X-ElevIQ-Internal": "0".repeat(64) };
+const HOST = new URL(BASE).host;
+const internal = { "X-ElevIQ-Internal": await createInternalMarker(TOKEN, HOST) };
+// A marker made with a token of the same shape that is not the token.
+const wrong = { "X-ElevIQ-Internal": await createInternalMarker("0".repeat(64), HOST) };
+// Never send the token itself: Cloudflare would keep it in its request logs.
+// That the raw token is rejected is covered by the unit tests.
+const expired = { "X-ElevIQ-Internal": await createInternalMarker(TOKEN, HOST, new Date(Date.now() - 3600_000)) };
 
 const cases = [
   { id: "a", what: "browser UA", path: "/", headers: { "User-Agent": CHROME, ...internal } },
@@ -64,6 +70,7 @@ const cases = [
   { id: "e", what: "demo-key signed, tampered", path: "/fr/technologies.html", sign: true, tampered: true, headers: { ...internal } },
   { id: "f", what: "wrong token, browser UA", path: "/services/ai-agent-readiness.html", headers: { "User-Agent": CHROME, ...wrong } },
   { id: "g", what: "utm_source=chatgpt.com, browser UA", path: "/fr/booking/", query: "?utm_source=chatgpt.com", headers: { "User-Agent": CHROME, ...internal } },
+  { id: "i", what: "expired marker (rejected)", path: "/fr/services/ai-agent-readiness.html", headers: { "User-Agent": `ElevIQ-Smoke/1.0 smoke-${RUN}-i`, ...expired } },
 ];
 
 const start = new Date().toISOString();

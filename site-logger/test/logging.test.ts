@@ -3,6 +3,7 @@ import { afterEach, beforeEach, test } from "node:test";
 import { sign, generateNonce } from "web-bot-auth";
 import { signerFromJWK } from "web-bot-auth/crypto";
 import { logVisit } from "../src/features/logging/index.ts";
+import { createInternalMarker } from "../../shared/index.ts";
 import type { Env } from "../src/lib/env.ts";
 
 import demoAgent from "../../gateway/keys/demo-agent.jwk.json" with { type: "json" };
@@ -139,12 +140,18 @@ test("a Referer from chatgpt.com is a ChatGPT referral by referer", async () => 
   assert.equal(row.referral_signal, "referer");
 });
 
-test("internal: correct token 1, wrong token 0, secret unset 0", async () => {
-  assert.equal((await logOne(request({ "User-Agent": CHROME, "X-ElevIQ-Internal": TOKEN }), { token: TOKEN })).internal, 1);
-  assert.equal((await logOne(request({ "User-Agent": CHROME, "X-ElevIQ-Internal": TOKEN + "x" }), { token: TOKEN })).internal, 0);
-  assert.equal((await logOne(request({ "User-Agent": CHROME, "X-ElevIQ-Internal": TOKEN.slice(0, 10) }), { token: TOKEN })).internal, 0);
-  assert.equal((await logOne(request({ "User-Agent": CHROME, "X-ElevIQ-Internal": TOKEN }), {})).internal, 0);
-  assert.equal((await logOne(request({ "User-Agent": CHROME }), { token: TOKEN })).internal, 0);
+const marker = (secret = TOKEN, host = "eleviq.solutions", now?: Date) => createInternalMarker(secret, host, now);
+
+test("internal: fresh marker made with the token 1; anything else 0", async () => {
+  const withMarker = async (m: string, envOpts: Parameters<typeof fakeEnv>[0] = { token: TOKEN }) =>
+    (await logOne(request({ "User-Agent": CHROME, "X-ElevIQ-Internal": m }), envOpts)).internal;
+  assert.equal(await withMarker(await marker()), 1);
+  assert.equal(await withMarker(await marker(TOKEN + "x")), 0, "made with a wrong token");
+  assert.equal(await withMarker(await marker(TOKEN, "agents.eleviq.solutions")), 0, "made for another host");
+  assert.equal(await withMarker(await marker(TOKEN, "eleviq.solutions", new Date(Date.now() - 3600_000))), 0, "expired");
+  assert.equal(await withMarker(TOKEN), 0, "the raw token itself is not accepted");
+  assert.equal(await withMarker(await marker(), {}), 0, "secret unset");
+  assert.equal((await logOne(request({ "User-Agent": CHROME }), { token: TOKEN })).internal, 0, "no header");
 });
 
 test("demo-signed request is valid with the demo setting on, vouched by eleviq.solutions", async () => {
@@ -168,17 +175,19 @@ test("a tampered signature is invalid", async () => {
   assert.equal(row.sig_status, "invalid");
 });
 
-test("the token appears in no stored value and no error output", async () => {
+test("neither the token nor the marker appears in a stored value or error output", async () => {
+  const m = await marker();
   const { env, rows } = fakeEnv({ token: TOKEN, failWrite: true });
   const { ctx, settle } = fakeCtx();
-  logVisit(request({ "User-Agent": "curl/8 " + TOKEN, "X-ElevIQ-Internal": TOKEN }), html(), env, ctx);
+  logVisit(request({ "User-Agent": "curl/8", "X-ElevIQ-Internal": m }), html(), env, ctx);
   await settle();
   assert.equal(rows.length, 0);
   assert.ok(errors.length > 0, "the failed write is reported");
-  for (const e of errors) assert.ok(!e.includes(TOKEN), "token in error output");
+  for (const e of errors) assert.ok(!e.includes(TOKEN) && !e.includes(m), "secret in error output");
 
-  const ok = await logOne(request({ "User-Agent": CHROME, "X-ElevIQ-Internal": TOKEN }), { token: TOKEN });
-  for (const v of Object.values(ok)) assert.ok(!String(v).includes(TOKEN), "token in a stored value");
+  const ok = await logOne(request({ "User-Agent": CHROME, "X-ElevIQ-Internal": m }), { token: TOKEN });
+  assert.equal(ok.internal, 1);
+  for (const v of Object.values(ok)) assert.ok(!String(v).includes(TOKEN) && !String(v).includes(m), "secret in a stored value");
 });
 
 test("a failing DB write never throws out of logVisit", async () => {

@@ -1,11 +1,17 @@
-import { classifyReferral, createSignatureChecker, isBrowserUserAgent, matchUserAgent } from "../../../../shared/index.ts";
+import {
+  classifyReferral,
+  createSignatureChecker,
+  INTERNAL_HEADER,
+  isBrowserUserAgent,
+  matchUserAgent,
+  verifyInternalMarker,
+} from "../../../../shared/index.ts";
 import { classifyVisitor } from "./classify.ts";
 import { writePageView, type PageViewEntry } from "./log.ts";
 import { isPageView } from "./page-view.ts";
 import type { Env } from "../../lib/env.ts";
 
-/** Header ElevIQ's own test tools send (requirements INT-1, INT-2). */
-export const INTERNAL_HEADER = "X-ElevIQ-Internal";
+export { INTERNAL_HEADER };
 
 /** Bot User-Agents are kept up to this length; longer ones are cut (storage bound). */
 const UA_RAW_MAX = 512;
@@ -24,24 +30,6 @@ function signatureChecker(env: Env) {
   return checker;
 }
 
-/**
- * Constant-time token comparison: both sides are hashed first, so the byte
- * comparison is over equal lengths and leaks neither length nor prefix.
- */
-async function isInternal(sent: string | null, secret: string | undefined): Promise<0 | 1> {
-  if (!sent || !secret) return 0;
-  const enc = new TextEncoder();
-  const [a, b] = await Promise.all([
-    crypto.subtle.digest("SHA-256", enc.encode(sent)),
-    crypto.subtle.digest("SHA-256", enc.encode(secret)),
-  ]);
-  const x = new Uint8Array(a);
-  const y = new Uint8Array(b);
-  let diff = 0;
-  for (let i = 0; i < x.length; i++) diff |= x[i] ^ y[i];
-  return diff === 0 ? 1 : 0;
-}
-
 /** LOG-2: only non-browser or attested User-Agents are stored; "" for an empty one. */
 function rawUserAgent(ua: string | null, cfCategory: string | null): string | null {
   if (!ua) return "";
@@ -49,7 +37,7 @@ function rawUserAgent(ua: string | null, cfCategory: string | null): string | nu
   return ua.slice(0, UA_RAW_MAX);
 }
 
-/** Error text only — never the request or its headers, which may carry the internal token. */
+/** Error text only — never the request or its headers (signatures, the internal marker). */
 function describe(err: unknown): string {
   return err instanceof Error ? `${err.name}: ${err.message}` : typeof err;
 }
@@ -73,7 +61,7 @@ export function logVisit(request: Request, response: Response, env: Env, ctx: Ex
           const referral = classifyReferral(request.headers.get("Referer"), request.url);
           const [sig, internal] = await Promise.all([
             signatureChecker(env).check(request),
-            isInternal(request.headers.get(INTERNAL_HEADER), env.ELEVIQ_INTERNAL_TOKEN),
+            verifyInternalMarker(request.headers.get(INTERNAL_HEADER), env.ELEVIQ_INTERNAL_TOKEN, new URL(request.url).host),
           ]);
           const entry: PageViewEntry = {
             path: new URL(request.url).pathname,
@@ -87,7 +75,7 @@ export function logVisit(request: Request, response: Response, env: Env, ctx: Ex
             uaRaw: rawUserAgent(ua, cfCategory),
             sigStatus: sig.sig_status,
             sigAgent: sig.sig_agent,
-            internal,
+            internal: internal ? 1 : 0,
           };
           await writePageView(env, entry);
         } catch (err) {

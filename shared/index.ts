@@ -6,6 +6,7 @@
 export * from "./signatures.ts";
 export * from "./derive.ts";
 export * from "./signature-check.ts";
+export * from "./internal-marker.ts";
 
 import legendEn from "./legend.en.json" with { type: "json" };
 import legendFr from "./legend.fr.json" with { type: "json" };
