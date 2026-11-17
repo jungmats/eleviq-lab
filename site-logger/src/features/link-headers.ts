@@ -1,4 +1,4 @@
-import type { DiscoveryLink } from "../config";
+import type { DiscoveryLink } from "../config.ts";
 
 /**
  * Adds RFC 8288 `Link` discovery headers to a response — e.g. pointing

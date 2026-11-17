@@ -1,5 +1,5 @@
-import { wantsMarkdown } from "./negotiate";
-import { htmlToMarkdown } from "./html-to-markdown";
+import { wantsMarkdown } from "./negotiate.ts";
+import { htmlToMarkdown } from "./html-to-markdown.ts";
 
 /**
  * Applies markdown content negotiation to an HTML response: if the request

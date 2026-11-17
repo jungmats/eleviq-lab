@@ -25,11 +25,12 @@
  * origin fetch and the response returned to the visitor must never depend
  * on any feature succeeding — see each feature's own error handling.
  */
-import { config } from "./config";
-import { addDiscoveryLinkHeaders } from "./features/link-headers";
-import { applyMarkdownNegotiation } from "./features/markdown";
-import { logVisit } from "./features/logging";
-import type { Env } from "./lib/env";
+import { config } from "./config.ts";
+import { addDiscoveryLinkHeaders } from "./features/link-headers.ts";
+import { applyMarkdownNegotiation } from "./features/markdown/index.ts";
+import { logVisit } from "./features/logging/index.ts";
+import { originRequest } from "./lib/origin.ts";
+import type { Env } from "./lib/env.ts";
 
 // The true origin behind eleviq.solutions — bypassing Cloudflare's own proxy
 // for this outbound fetch (via cf.resolveOverride below) avoids an infinite
@@ -38,13 +39,14 @@ const ORIGIN_HOST = "jungmats.github.io";
 
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+    const upstream = originRequest(request);
     let response: Response;
     try {
-      response = await fetch(request, { cf: { resolveOverride: ORIGIN_HOST } });
+      response = await fetch(upstream, { cf: { resolveOverride: ORIGIN_HOST } });
     } catch {
       // Fallback: a plain fetch, in case resolveOverride itself is ever the
       // problem. Still origin content, just without the loop-safe override.
-      response = await fetch(request);
+      response = await fetch(upstream);
     }
 
     if (config.markdown.enabled) {

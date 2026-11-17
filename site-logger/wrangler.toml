@@ -3,16 +3,24 @@
 #   npx wrangler dev    --config site-logger/wrangler.toml   local: http://localhost:8788
 #   npx wrangler deploy --config site-logger/wrangler.toml   -> eleviq-site-logger.<subdomain>.workers.dev
 #
-# NOT yet bound to eleviq.solutions traffic — the [[routes]] block below is
-# commented out on purpose. Test thoroughly via the workers.dev URL first
-# (see site-logger/README.md). Uncommenting routes + deploying is the actual
-# go-live step, and it touches the live site immediately — do that only
-# after explicit confirmation, per PLAN.md.
+# LIVE: the [[routes]] below bind this Worker to all eleviq.solutions traffic.
+# Every deploy changes the production site immediately — test locally first
+# (npm run test:site-logger, wrangler deploy --dry-run). Rollback:
+#   npx wrangler rollback --config site-logger/wrangler.toml
+#
+# Secret (not in this file): ELEVIQ_INTERNAL_TOKEN — marks ElevIQ's own test
+# traffic (requirements INT-2). Set with `wrangler secret put`; one per client.
 
 name = "eleviq-site-logger"
 main = "src/index.ts"
 compatibility_date = "2026-09-01"
 workers_dev = true
+
+[vars]
+# Accept ElevIQ's demo signing key as Verified (LOG-8). "true" only on
+# eleviq.solutions — its private half is published, so on a client site it
+# would let anyone appear Verified. Client deployments: "false".
+ACCEPT_DEMO_SIGNATURES = "true"
 
 [observability]
 enabled = true
