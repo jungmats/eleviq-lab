@@ -17,7 +17,9 @@
     "test:site-logger": "node --test 'site-logger/test/**/*.test.ts'",
     "test:insights": "node --test 'insights/test/**/*.test.mjs' 'insights/test/**/*.test.ts'",
     "typecheck": "tsc -p gateway/tsconfig.json && tsc -p journey/tsconfig.json && tsc -p shared/tsconfig.json && tsc -p site-logger/tsconfig.json && tsc -p insights/tsconfig.json",
-    "test:shared": "node --test 'shared/test/**/*.test.ts'"
+    "test:shared": "node --test 'shared/test/**/*.test.ts'",
+    "sync:journey": "node scripts/sync-shared.mjs ../jungmats.github.io/_journey-worker/src/shared",
+    "check:journey": "node scripts/sync-shared.mjs --check ../jungmats.github.io/_journey-worker/src/shared"
   },
   "dependencies": {
     "fast-xml-parser": "^5.11.1",
