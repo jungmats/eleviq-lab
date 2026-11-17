@@ -16,7 +16,8 @@
     "test:journey": "node --test 'journey/test/**/*.test.ts'",
     "test:site-logger": "node --test 'site-logger/test/**/*.test.ts'",
     "test:insights": "node --test 'insights/test/**/*.test.mjs'",
-    "typecheck": "tsc -p gateway/tsconfig.json && tsc -p journey/tsconfig.json"
+    "typecheck": "tsc -p gateway/tsconfig.json && tsc -p journey/tsconfig.json && tsc -p shared/tsconfig.json",
+    "test:shared": "node --test 'shared/test/**/*.test.ts'"
   },
   "dependencies": {
     "fast-xml-parser": "^5.11.1",

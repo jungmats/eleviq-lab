@@ -1,0 +1,33 @@
+{
+  "panelTitle": "Quel est notre degré de certitude ?",
+  "texts": {
+    "TXT-VERIFIED": "Nous avons vérifié une signature numérique envoyée avec la requête : elle provient bien de l'opérateur qu'elle indique.",
+    "TXT-ATTESTED": "Cloudflare, qui diffuse ce site, reconnaît ce visiteur comme un robot ou un agent connu. Nous nous fions à son jugement, sans pouvoir voir sur quoi il repose.",
+    "TXT-DECLARED": "Le visiteur indique lui-même son nom, mais rien ne le confirme. N'importe qui peut utiliser n'importe quel nom.",
+    "TXT-PEOPLE": "Ressemble à une personne qui utilise un navigateur. Ce groupe comprend aussi les agents IA qui travaillent dans un navigateur sans s'identifier.",
+    "TXT-CONTRADICTED": "Utilise le nom d'un robot que Cloudflare reconnaît habituellement, mais Cloudflare ne l'a pas reconnu cette fois — le plus souvent, quelqu'un qui emprunte ce nom.",
+    "TXT-SIG-INVALID": "A envoyé une signature qui ne correspond pas. Considérez l'identité annoncée comme fausse.",
+    "TXT-SIG-UNCHECKED": "A envoyé une signature que nous n'avons pas pu vérifier au moment de la visite.",
+    "TXT-LIMITS": "Certains agents IA ne peuvent pas être distingués des personnes : ceux qui fonctionnent dans un navigateur sur l'appareil de l'utilisateur, et ceux qui répondent à partir d'un index de recherche sans visiter le site."
+  },
+  "levels": {
+    "verified": "Vérifié",
+    "attested": "Attesté",
+    "declared": "Déclaré"
+  },
+  "flags": {
+    "contradicted": "Nom non confirmé",
+    "signature-invalid": "Signature invalide"
+  },
+  "notes": {
+    "sig-unchecked": "Signature non vérifiée"
+  },
+  "kinds": {
+    "people": "Personnes",
+    "ai-assistant": "Assistants IA",
+    "search": "Moteurs de recherche",
+    "ai-training": "Collecte pour l'entraînement IA",
+    "other-bot": "Autres robots",
+    "unknown": "Non identifiés"
+  }
+}
