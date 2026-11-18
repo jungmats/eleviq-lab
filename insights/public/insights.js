@@ -298,7 +298,8 @@ function renderTable(data) {
   $("log-rows").innerHTML =
     entries.map((e) => {
       const ref = e.referral ? `${esc(e.referral.by)} <span class="muted">(${e.referral.signal === "utm" ? "utm" : "link"})</span>` : "—";
-      const visitor = e.kind === "people" ? "—" : esc(e.name ?? "—");
+      const name = e.kind === "people" ? "—" : esc(e.name ?? "—");
+      const visitor = e.ua ? `<span class="ua-tip" ${tipAttr(`User-Agent: ${e.ua}`)}>${name}</span>` : name;
       return `<tr><td>${fmtTime(e.ts)}</td>
         ${pageCol ? `<td><a href="${esc(hrefFor({ path: e.path, flagged: null }))}">${esc(e.path)}</a></td>` : ""}
         <td>${visitor}</td><td>${esc(kindLabel(e.kind))}</td><td class="ev-cell">${evidenceCell(e)}</td>

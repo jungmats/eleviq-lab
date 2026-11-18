@@ -280,7 +280,9 @@ td.zero { color: var(--text-muted); }
   line-height: 1.4;
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
   pointer-events: none;
+  overflow-wrap: anywhere;
 }
+.ua-tip { text-decoration: underline dotted var(--text-muted); text-underline-offset: 3px; cursor: help; }
 
 .block { margin-top: 1.2rem; }
 .filter-head { display: flex; align-items: center; gap: 0.45rem; margin-bottom: 0.35rem; }

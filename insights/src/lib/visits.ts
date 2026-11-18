@@ -242,6 +242,8 @@ export interface Entry {
   flags: Flag[];
   notes: string[];
   referral: { by: string; signal: string } | null;
+  /** Stored User-Agent (bots only, LOG-2); null for people and rows logged before 2026-11-17. */
+  ua: string | null;
 }
 
 export function toEntry(row: Tuple & { ts: string; path: string; country: string | null }, c: VisitorClass): Entry {
@@ -256,6 +258,7 @@ export function toEntry(row: Tuple & { ts: string; path: string; country: string
     flags: c.flags,
     notes: c.notes,
     referral: c.referral,
+    ua: row.ua_raw ? row.ua_raw : null,
   };
 }
 

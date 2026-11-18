@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { aggregateMonthly, aggregateWindow, classifier, parseFilters, passes, periodNote, type Filters, type Tuple } from "../src/lib/visits.ts";
+import { aggregateMonthly, aggregateWindow, classifier, parseFilters, passes, periodNote, toEntry, type Filters, type Tuple } from "../src/lib/visits.ts";
 
 const ALL: Filters = parseFilters(new URLSearchParams()).ok
   ? (parseFilters(new URLSearchParams()) as { ok: true; filters: Filters }).filters
@@ -148,4 +148,15 @@ test("invalid parameters are rejected with the allowed values", () => {
   assert.deepEqual(with_("kinds=search,people").kinds, ["people", "search"], "kept in canonical order");
   assert.equal(ALL.limit, 10, "10 events by default");
   assert.equal(with_("limit=500").limit, 500);
+});
+
+test("events carry the stored User-Agent for the hover, null when not stored", () => {
+  const classify = classifier();
+  const ua = "Mozilla/5.0 (Linux; Android 6.0.1) Chrome/157 Mobile Safari/537.36 (compatible; GoogleOther)";
+  const row = { ts: "2026-11-18T06:15:42.000Z", path: "/", country: "US", ua_raw: ua, cf_bot_category: "AI Crawler", sig_status: "none", n: 1 } as Tuple & { ts: string; path: string; country: string };
+  const e = toEntry(row, classify(row));
+  assert.equal(e.name, "AI Crawler");
+  assert.equal(e.ua, ua);
+  const legacy = { ...legacyHumanAttested, ts: "2026-11-01T00:00:00.000Z", path: "/", country: "SG" };
+  assert.equal(toEntry(legacy, classify(legacy)).ua, null);
 });
