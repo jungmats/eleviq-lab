@@ -53,6 +53,7 @@ const md = [
   "",
   "ASM-10 (journeys from Claude / ChatGPT connectors) is checked in the journey database, not here.",
   "ASM-8 (answer from an index, no visit) is set up separately and closed at the quarterly review.",
+  "After the session: `node site-logger/scripts/mark-internal.mjs tests` keeps the test visits out of the figures (lookups still find them).",
   "",
   ...rows.flatMap((r) => [
     `## ${r.id}`,
