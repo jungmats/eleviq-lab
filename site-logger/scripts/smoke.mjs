@@ -68,7 +68,9 @@ const cases = [
   { id: "c", what: "empty UA", path: "/booking/", headers: { "User-Agent": "", ...internal } },
   { id: "d", what: "demo-key signed", path: "/fr/", sign: true, headers: { ...internal } },
   { id: "e", what: "demo-key signed, tampered", path: "/fr/technologies.html", sign: true, tampered: true, headers: { ...internal } },
-  { id: "f", what: "wrong token, browser UA", path: "/services/ai-agent-readiness.html", headers: { "User-Agent": CHROME, ...wrong } },
+  // Rejection cases arrive unmarked by design; their UA carries the run id so
+  // mark-internal.mjs can mark them afterwards.
+  { id: "f", what: "wrong token (rejected)", path: "/services/ai-agent-readiness.html", headers: { "User-Agent": `ElevIQ-Smoke/1.0 smoke-${RUN}-f`, ...wrong } },
   { id: "g", what: "utm_source=chatgpt.com, browser UA", path: "/fr/booking/", query: "?utm_source=chatgpt.com", headers: { "User-Agent": CHROME, ...internal } },
   { id: "i", what: "expired marker (rejected)", path: "/fr/services/ai-agent-readiness.html", headers: { "User-Agent": `ElevIQ-Smoke/1.0 smoke-${RUN}-i`, ...expired } },
 ];
@@ -88,3 +90,4 @@ for (const c of cases) {
   out.push({ id: c.id, what: c.what, path: c.path, status: res.status });
 }
 console.log(JSON.stringify({ run: RUN, start, end: new Date().toISOString(), cases: out }, null, 2));
+console.log(`After checking the rows: node site-logger/scripts/mark-internal.mjs smoke ${RUN}`);
